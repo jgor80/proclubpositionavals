@@ -9,7 +9,7 @@ const {
   PermissionsBitField,
   StringSelectMenuBuilder
 } = require('discord.js');
-const token = process.env.BOT_TOKEN;
+const { token } = require('./config.json');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -37,17 +37,27 @@ const CLUBS = [
   'RS Academy'
 ];
 
-// Default club
-let currentClub = CLUBS[0];
+// Per-channel state:
+// channelId -> { currentClub: string, spots: { [pos]: boolean } }
+const channelState = new Map();
 
-// true = OPEN, false = TAKEN
-const spots = {};
-POSITIONS.forEach((p) => (spots[p] = true));
+// Get or create state for a channel
+function getState(channelId) {
+  if (!channelState.has(channelId)) {
+    const spots = {};
+    POSITIONS.forEach((p) => (spots[p] = true)); // all OPEN
+    channelState.set(channelId, {
+      currentClub: CLUBS[0], // default club
+      spots
+    });
+  }
+  return channelState.get(channelId);
+}
 
-// Build the embed (display)
-function buildEmbed() {
+// Build the embed for a specific channel state
+function buildEmbed(state) {
   const lines = POSITIONS.map((p) => {
-    const open = spots[p];
+    const open = state.spots[p];
     const emoji = open ? '🟢' : '🔴';
     const text = open ? 'OPEN' : 'TAKEN';
     return `**${p}** – ${emoji} ${text}`;
@@ -55,17 +65,17 @@ function buildEmbed() {
 
   return new EmbedBuilder()
     .setTitle('Div Spots')
-    .setDescription(`**Club:** ${currentClub}\n\n` + lines.join('\n'))
+    .setDescription(`**Club:** ${state.currentClub}\n\n` + lines.join('\n'))
     .setFooter({ text: 'Admins: tap a button or pick a club.' });
 }
 
 // Build the position buttons (max 5 per row)
-function buildButtons() {
+function buildButtons(state) {
   const rows = [];
   let currentRow = new ActionRowBuilder();
 
   POSITIONS.forEach((p, index) => {
-    const open = spots[p];
+    const open = state.spots[p];
     const button = new ButtonBuilder()
       .setCustomId(`pos_${p}`)
       .setLabel(p)
@@ -73,7 +83,6 @@ function buildButtons() {
 
     currentRow.addComponents(button);
 
-    // If row has 5 buttons or this is the last position, push row and start new
     if (currentRow.components.length === 5 || index === POSITIONS.length - 1) {
       rows.push(currentRow);
       currentRow = new ActionRowBuilder();
@@ -84,14 +93,15 @@ function buildButtons() {
 }
 
 // Build the club dropdown
-function buildClubSelect() {
+function buildClubSelect(state) {
   const select = new StringSelectMenuBuilder()
     .setCustomId('club_select')
     .setPlaceholder('Select club')
     .addOptions(
       CLUBS.map((name) => ({
         label: name,
-        value: name
+        value: name,
+        default: name === state.currentClub
       }))
     );
 
@@ -100,9 +110,9 @@ function buildClubSelect() {
 }
 
 // All components together: dropdown + buttons
-function buildComponents() {
-  const clubRow = buildClubSelect();
-  const buttonRows = buildButtons();
+function buildComponents(state) {
+  const clubRow = buildClubSelect(state);
+  const buttonRows = buildButtons(state);
   return [clubRow, ...buttonRows];
 }
 
@@ -110,10 +120,9 @@ function buildComponents() {
 client.once(Events.ClientReady, async (c) => {
   console.log(`✅ Logged in as ${c.user.tag}`);
 
-  // Slash commands: /div and /divall
   await c.application.commands.set([
-    { name: 'div', description: 'Show Div spots.' },
-    { name: 'divall', description: 'Set all spots to OPEN.' }
+    { name: 'div', description: 'Show Div spots (per channel).' },
+    { name: 'divall', description: 'Set all spots to OPEN (this channel).' }
   ]);
   console.log('✅ Commands /div and /divall registered');
 });
@@ -121,18 +130,23 @@ client.once(Events.ClientReady, async (c) => {
 // Handle commands, buttons, dropdown
 client.on(Events.InteractionCreate, async (interaction) => {
   try {
+    // Ignore DMs, only care about guild channels
+    if (!interaction.guildId || !interaction.channelId) return;
+
+    const state = getState(interaction.channelId);
+
     // Slash commands
     if (interaction.isChatInputCommand()) {
       if (interaction.commandName === 'div') {
-        // Send main board message (pin this)
+        // Send main board message (pin this in that channel)
         return interaction.reply({
-          embeds: [buildEmbed()],
-          components: buildComponents()
+          embeds: [buildEmbed(state)],
+          components: buildComponents(state)
         });
       }
 
       if (interaction.commandName === 'divall') {
-        // Only admins can reset all
+        // Only admins can reset
         if (
           !interaction.memberPermissions?.has(
             PermissionsBitField.Flags.ManageGuild
@@ -144,9 +158,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        POSITIONS.forEach((p) => (spots[p] = true));
+        POSITIONS.forEach((p) => (state.spots[p] = true));
         return interaction.reply({
-          content: 'All spots set to 🟢 OPEN.',
+          content: 'All spots set to 🟢 OPEN in this channel.',
           ephemeral: true
         });
       }
@@ -155,7 +169,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     // Position buttons
     if (interaction.isButton()) {
       const [prefix, pos] = interaction.customId.split('_');
-      if (prefix !== 'pos' || !spots.hasOwnProperty(pos)) return;
+      if (prefix !== 'pos' || !state.spots.hasOwnProperty(pos)) return;
 
       // Only admins can change spots
       if (
@@ -169,13 +183,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Flip OPEN/TAKEN
-      spots[pos] = !spots[pos];
+      // Flip OPEN/TAKEN for this channel's state
+      state.spots[pos] = !state.spots[pos];
 
-      // Update same message (the pinned one)
       return interaction.update({
-        embeds: [buildEmbed()],
-        components: buildComponents()
+        embeds: [buildEmbed(state)],
+        components: buildComponents(state)
       });
     }
 
@@ -203,12 +216,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      currentClub = selected;
+      state.currentClub = selected;
 
-      // Update same message
       return interaction.update({
-        embeds: [buildEmbed()],
-        components: buildComponents()
+        embeds: [buildEmbed(state)],
+        components: buildComponents(state)
       });
     }
   } catch (err) {
