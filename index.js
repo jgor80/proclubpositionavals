@@ -34,37 +34,52 @@ const POSITIONS = [
   'GK'
 ];
 
-// Club options
+// Club definitions (keys + pretty names + shortcode commands)
 const CLUBS = [
-  'Rush Superstars',
-  'RushSuperstars1',
-  'RushSuperstars2',
-  'RushSuperstars3',
-  'RS Academy'
+  { key: 'rs',  name: 'Rush Superstars',  command: 'rs'  },
+  { key: 'rs1', name: 'RushSuperstars1',  command: 'rs1' },
+  { key: 'rs2', name: 'RushSuperstars2',  command: 'rs2' }, // optional extra
+  { key: 'rs3', name: 'RushSuperstars3',  command: 'rs3' }, // optional extra
+  { key: 'rsa', name: 'RS Academy',       command: 'rsa' }
 ];
 
-// Per-channel state:
-// channelId -> { currentClub: string, spots: { [pos]: boolean } }
-const channelState = new Map();
-
-// Create or get state for a channel
-function getState(channelId) {
-  if (!channelState.has(channelId)) {
-    const spots = {};
-    POSITIONS.forEach((p) => (spots[p] = true)); // all OPEN
-
-    channelState.set(channelId, {
-      currentClub: CLUBS[0], // default club
-      spots
-    });
-  }
-  return channelState.get(channelId);
+// Helpers to find clubs
+function getClubByKey(key) {
+  return CLUBS.find(c => c.key === key);
+}
+function getClubByCommand(cmd) {
+  return CLUBS.find(c => c.command === cmd);
 }
 
-// Build the main embed for a channel
-function buildEmbed(state) {
+// Global multi-club board state:
+// clubKey -> { spots: { [pos]: boolean } }
+const boardState = {};
+CLUBS.forEach(club => {
+  boardState[club.key] = {
+    spots: POSITIONS.reduce((acc, p) => {
+      acc[p] = true; // true = OPEN
+      return acc;
+    }, {})
+  };
+});
+
+// Which club the admin panel is currently editing
+let currentClubKey = 'rs';
+
+// Track the admin panel message so we can update it
+let adminPanelChannelId = null;
+let adminPanelMessageId = null;
+
+// Build the main embed for a given club key
+function buildEmbedForClub(clubKey) {
+  const club = getClubByKey(clubKey);
+  if (!club) {
+    throw new Error(`Unknown club key: ${clubKey}`);
+  }
+
+  const clubBoard = boardState[clubKey];
   const lines = POSITIONS.map((p) => {
-    const open = state.spots[p];
+    const open = clubBoard.spots[p];
     const emoji = open ? '🟢' : '🔴';
     const text = open ? 'OPEN' : 'TAKEN';
     return `**${p}** – ${emoji} ${text}`;
@@ -72,25 +87,25 @@ function buildEmbed(state) {
 
   return new EmbedBuilder()
     .setTitle('Div Spots')
-    .setDescription(`**Club:** ${state.currentClub}\n\n` + lines.join('\n'))
-    .setFooter({ text: 'Admins: tap a button or pick a club.' });
+    .setDescription(`**Club:** ${club.name}\n\n` + lines.join('\n'))
+    .setFooter({ text: 'Admins: use the panel to change spots/club.' });
 }
 
-// Build the position buttons (max 5 per row)
-function buildButtons(state) {
+// Build position buttons (for the CURRENT club in the panel)
+function buildButtons() {
+  const clubBoard = boardState[currentClubKey];
   const rows = [];
   let currentRow = new ActionRowBuilder();
 
   POSITIONS.forEach((p, index) => {
-    const open = state.spots[p];
+    const open = clubBoard.spots[p];
     const button = new ButtonBuilder()
       .setCustomId(`pos_${p}`)
       .setLabel(p)
-      .setStyle(open ? ButtonStyle.Success : ButtonStyle.Danger); // green = OPEN, red = TAKEN
+      .setStyle(open ? ButtonStyle.Success : ButtonStyle.Danger); // green=open, red=taken
 
     currentRow.addComponents(button);
 
-    // If row has 5 buttons or we're at the end, push the row
     if (currentRow.components.length === 5 || index === POSITIONS.length - 1) {
       rows.push(currentRow);
       currentRow = new ActionRowBuilder();
@@ -100,16 +115,16 @@ function buildButtons(state) {
   return rows;
 }
 
-// Build the club dropdown
-function buildClubSelect(state) {
+// Build club dropdown (for admin panel)
+function buildClubSelect() {
   const select = new StringSelectMenuBuilder()
     .setCustomId('club_select')
     .setPlaceholder('Select club')
     .addOptions(
-      CLUBS.map((name) => ({
-        label: name,
-        value: name,
-        default: name === state.currentClub
+      CLUBS.map((club) => ({
+        label: club.name,
+        value: club.key,
+        default: club.key === currentClubKey
       }))
     );
 
@@ -117,29 +132,36 @@ function buildClubSelect(state) {
   return row;
 }
 
-// Combine dropdown + buttons into components array
-function buildComponents(state) {
-  const clubRow = buildClubSelect(state);
-  const buttonRows = buildButtons(state);
+// Components for the admin panel (dropdown + buttons)
+function buildAdminComponents() {
+  const clubRow = buildClubSelect();
+  const buttonRows = buildButtons();
   return [clubRow, ...buttonRows];
 }
 
-// When the bot starts
 client.once(Events.ClientReady, async (c) => {
   console.log(`✅ Logged in as ${c.user.tag}`);
   console.log(`✅ App ID: ${c.application.id}`);
 
   await c.application.commands.set([
-    { name: 'div', description: 'Show Div spots (per channel).' },
-    { name: 'divall', description: 'Set all spots to OPEN (this channel).' }
+    { name: 'div', description: 'Show Div spots for the current club (read-only).' },
+    { name: 'divpanel', description: 'Create the admin control panel for Div spots.' },
+    { name: 'divall', description: 'Set all spots to OPEN for the current club.' },
+
+    // Shortcodes for specific clubs
+    { name: 'rs',  description: 'Show Rush Superstars spots.' },
+    { name: 'rs1', description: 'Show RushSuperstars1 spots.' },
+    { name: 'rsa', description: 'Show RS Academy spots.' },
+
+    // Optional extras if you decide to use them:
+    { name: 'rs2', description: 'Show RushSuperstars2 spots.' },
+    { name: 'rs3', description: 'Show RushSuperstars3 spots.' }
   ]);
 
-  console.log('✅ Commands /div and /divall registered');
+  console.log('✅ Commands registered: /div, /divpanel, /divall, /rs, /rs1, /rsa, /rs2, /rs3');
 });
 
-// Handle slash commands, buttons, and dropdowns
 client.on(Events.InteractionCreate, async (interaction) => {
-  // Simple log for debugging on Railway
   console.log('🔔 Interaction received:', {
     guildId: interaction.guildId,
     channelId: interaction.channelId,
@@ -149,53 +171,108 @@ client.on(Events.InteractionCreate, async (interaction) => {
   });
 
   try {
-    // Only handle interactions in guild channels
     if (!interaction.guildId || !interaction.channelId) return;
-
-    const state = getState(interaction.channelId);
 
     // Slash commands
     if (interaction.isChatInputCommand()) {
-      if (interaction.commandName === 'div') {
-        // Send main board message (pin this in that channel)
+      const cmd = interaction.commandName;
+
+      // Generic "current club" view
+      if (cmd === 'div') {
         return interaction.reply({
-          embeds: [buildEmbed(state)],
-          components: buildComponents(state)
+          embeds: [buildEmbedForClub(currentClubKey)],
+          components: [] // read-only
         });
       }
 
-      if (interaction.commandName === 'divall') {
-        // Only admins can reset all spots
+      // Admin: create panel
+      if (cmd === 'divpanel') {
         if (
           !interaction.memberPermissions?.has(
             PermissionsBitField.Flags.ManageGuild
           )
         ) {
           return interaction.reply({
-            content: 'Only admins can reset all spots.',
+            content: 'Only admins can create the control panel.',
             ephemeral: true
           });
         }
 
-        POSITIONS.forEach((p) => (state.spots[p] = true));
+        const msg = await interaction.reply({
+          embeds: [buildEmbedForClub(currentClubKey)],
+          components: buildAdminComponents(),
+          fetchReply: true
+        });
+
+        adminPanelChannelId = interaction.channelId;
+        adminPanelMessageId = msg.id;
+
+        console.log('✅ Admin panel created at', {
+          channelId: adminPanelChannelId,
+          messageId: adminPanelMessageId
+        });
+
+        return;
+      }
+
+      // Admin: reset current club
+      if (cmd === 'divall') {
+        if (
+          !interaction.memberPermissions?.has(
+            PermissionsBitField.Flags.ManageGuild
+          )
+        ) {
+          return interaction.reply({
+            content: 'Only admins can reset spots.',
+            ephemeral: true
+          });
+        }
+
+        const clubBoard = boardState[currentClubKey];
+        POSITIONS.forEach((p) => (clubBoard.spots[p] = true));
+
+        // Update admin panel if it exists
+        if (adminPanelChannelId && adminPanelMessageId) {
+          try {
+            const channel = await client.channels.fetch(adminPanelChannelId);
+            const msg = await channel.messages.fetch(adminPanelMessageId);
+            await msg.edit({
+              embeds: [buildEmbedForClub(currentClubKey)],
+              components: buildAdminComponents()
+            });
+          } catch (err) {
+            console.error('⚠️ Failed to update admin panel after /divall:', err);
+          }
+        }
 
         return interaction.reply({
-          content: 'All spots set to 🟢 OPEN in this channel.',
+          content: 'All spots set to 🟢 OPEN for the current club.',
           ephemeral: true
+        });
+      }
+
+      // Shortcodes for specific clubs: /rs, /rs1, /rs2, /rs3, /rsa
+      const shortcodeClub = getClubByCommand(cmd);
+      if (shortcodeClub) {
+        return interaction.reply({
+          embeds: [buildEmbedForClub(shortcodeClub.key)],
+          components: [] // read-only
         });
       }
     }
 
-    // Position buttons
+    // Buttons (admin panel: change spots for current club)
     if (interaction.isButton()) {
       const [prefix, pos] = interaction.customId.split('_');
-      if (prefix !== 'pos' || !state.spots.hasOwnProperty(pos)) return;
+      if (prefix !== 'pos') return;
 
-      // Only admins can change spots
+      const clubBoard = boardState[currentClubKey];
+      if (!clubBoard.spots.hasOwnProperty(pos)) return;
+
       if (
         !interaction.memberPermissions?.has(
           PermissionsBitField.Flags.ManageGuild
-        )
+          )
       ) {
         return interaction.reply({
           content: 'Only admins can change spots.',
@@ -203,20 +280,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Flip OPEN / TAKEN
-      state.spots[pos] = !state.spots[pos];
+      clubBoard.spots[pos] = !clubBoard.spots[pos];
 
       return interaction.update({
-        embeds: [buildEmbed(state)],
-        components: buildComponents(state)
+        embeds: [buildEmbedForClub(currentClubKey)],
+        components: buildAdminComponents()
       });
     }
 
-    // Club dropdown
+    // Dropdown (admin panel: change which club we're editing)
     if (interaction.isStringSelectMenu()) {
       if (interaction.customId !== 'club_select') return;
 
-      // Only admins can change club
       if (
         !interaction.memberPermissions?.has(
           PermissionsBitField.Flags.ManageGuild
@@ -228,19 +303,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      const selected = interaction.values[0];
-      if (!CLUBS.includes(selected)) {
+      const selectedKey = interaction.values[0];
+      const club = getClubByKey(selectedKey);
+      if (!club) {
         return interaction.reply({
           content: 'Unknown club selected.',
           ephemeral: true
         });
       }
 
-      state.currentClub = selected;
+      currentClubKey = selectedKey;
 
       return interaction.update({
-        embeds: [buildEmbed(state)],
-        components: buildComponents(state)
+        embeds: [buildEmbedForClub(currentClubKey)],
+        components: buildAdminComponents()
       });
     }
   } catch (err) {
@@ -254,5 +330,4 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-// Log in
 client.login(token);
