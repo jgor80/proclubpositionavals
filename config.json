@@ -1,0 +1,7 @@
+{
+ let token = process.env.BOT_TOKEN;
+if (!token) {
+  // fallback for local dev
+  token = require('./config.json').token;
+}
+}
