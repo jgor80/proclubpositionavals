@@ -9,11 +9,17 @@ const {
   PermissionsBitField,
   StringSelectMenuBuilder
 } = require('discord.js');
-const { token } = require('./config.json');
+
+// Get token from environment variable only
+const token = process.env.BOT_TOKEN;
+if (!token) {
+  console.error('❌ BOT_TOKEN env var not set');
+  process.exit(1);
+}
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-// Positions you want to track
+// Positions to track
 const POSITIONS = [
   'ST',
   'RW',
@@ -41,11 +47,12 @@ const CLUBS = [
 // channelId -> { currentClub: string, spots: { [pos]: boolean } }
 const channelState = new Map();
 
-// Get or create state for a channel
+// Create or get state for a channel
 function getState(channelId) {
   if (!channelState.has(channelId)) {
     const spots = {};
     POSITIONS.forEach((p) => (spots[p] = true)); // all OPEN
+
     channelState.set(channelId, {
       currentClub: CLUBS[0], // default club
       spots
@@ -54,7 +61,7 @@ function getState(channelId) {
   return channelState.get(channelId);
 }
 
-// Build the embed for a specific channel state
+// Build the main embed for a channel
 function buildEmbed(state) {
   const lines = POSITIONS.map((p) => {
     const open = state.spots[p];
@@ -79,10 +86,11 @@ function buildButtons(state) {
     const button = new ButtonBuilder()
       .setCustomId(`pos_${p}`)
       .setLabel(p)
-      .setStyle(open ? ButtonStyle.Success : ButtonStyle.Danger); // green=open, red=taken
+      .setStyle(open ? ButtonStyle.Success : ButtonStyle.Danger); // green = OPEN, red = TAKEN
 
     currentRow.addComponents(button);
 
+    // If row has 5 buttons or we're at the end, push the row
     if (currentRow.components.length === 5 || index === POSITIONS.length - 1) {
       rows.push(currentRow);
       currentRow = new ActionRowBuilder();
@@ -109,7 +117,7 @@ function buildClubSelect(state) {
   return row;
 }
 
-// All components together: dropdown + buttons
+// Combine dropdown + buttons into components array
 function buildComponents(state) {
   const clubRow = buildClubSelect(state);
   const buttonRows = buildButtons(state);
@@ -119,18 +127,29 @@ function buildComponents(state) {
 // When the bot starts
 client.once(Events.ClientReady, async (c) => {
   console.log(`✅ Logged in as ${c.user.tag}`);
+  console.log(`✅ App ID: ${c.application.id}`);
 
   await c.application.commands.set([
     { name: 'div', description: 'Show Div spots (per channel).' },
     { name: 'divall', description: 'Set all spots to OPEN (this channel).' }
   ]);
+
   console.log('✅ Commands /div and /divall registered');
 });
 
-// Handle commands, buttons, dropdown
+// Handle slash commands, buttons, and dropdowns
 client.on(Events.InteractionCreate, async (interaction) => {
+  // Simple log for debugging on Railway
+  console.log('🔔 Interaction received:', {
+    guildId: interaction.guildId,
+    channelId: interaction.channelId,
+    type: interaction.type,
+    commandName: interaction.commandName,
+    customId: interaction.customId
+  });
+
   try {
-    // Ignore DMs, only care about guild channels
+    // Only handle interactions in guild channels
     if (!interaction.guildId || !interaction.channelId) return;
 
     const state = getState(interaction.channelId);
@@ -146,7 +165,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
 
       if (interaction.commandName === 'divall') {
-        // Only admins can reset
+        // Only admins can reset all spots
         if (
           !interaction.memberPermissions?.has(
             PermissionsBitField.Flags.ManageGuild
@@ -159,6 +178,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
 
         POSITIONS.forEach((p) => (state.spots[p] = true));
+
         return interaction.reply({
           content: 'All spots set to 🟢 OPEN in this channel.',
           ephemeral: true
@@ -183,7 +203,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Flip OPEN/TAKEN for this channel's state
+      // Flip OPEN / TAKEN
       state.spots[pos] = !state.spots[pos];
 
       return interaction.update({
