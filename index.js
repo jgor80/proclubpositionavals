@@ -160,7 +160,11 @@ function buildAdminComponents() {
     new ButtonBuilder()
       .setCustomId('add_club')
       .setLabel('Add Club')
-      .setStyle(ButtonStyle.Secondary)
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('remove_club')
+      .setLabel('Remove Club')
+      .setStyle(ButtonStyle.Danger)
   );
 
   const buttonRows = buildButtons();
@@ -613,7 +617,90 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      const [prefix, pos] = interaction.customId.split('_');
+      // Handle remove-club button
+      if (interaction.customId === 'remove_club') {
+        if (
+          !interaction.memberPermissions?.has(
+            PermissionsBitField.Flags.ManageGuild
+          )
+        ) {
+          return interaction.reply({
+            content: 'Only admins can remove clubs.',
+            ephemeral: true
+          });
+        }
+
+        const currentClub = getClubByKey(currentClubKey);
+        if (!currentClub || !currentClub.enabled) {
+          return interaction.reply({
+            content: 'Current club cannot be removed.',
+            ephemeral: true
+          });
+        }
+
+        const enabledCount = CLUBS.filter(c => c.enabled).length;
+        if (enabledCount <= 1) {
+          return interaction.reply({
+            content: 'You must keep at least one club enabled.',
+            ephemeral: true
+          });
+        }
+
+        const clubBoard = boardState[currentClubKey];
+        if (clubBoard && clubBoard.spots) {
+          const hasTaken = POSITIONS.some(p => {
+            const s = clubBoard.spots[p];
+            return s && s.open === false;
+          });
+
+          if (hasTaken) {
+            return interaction.reply({
+              content: 'This club still has taken spots. Free all spots first (use /divall or buttons) before removing it.',
+              ephemeral: true
+            });
+          }
+        }
+
+        // Disable this club
+        currentClub.enabled = false;
+
+        // Optionally clear its board
+        if (clubBoard && clubBoard.spots) {
+          POSITIONS.forEach(p => {
+            if (clubBoard.spots[p]) {
+              clubBoard.spots[p].open = true;
+              clubBoard.spots[p].takenBy = null;
+            }
+          });
+        }
+
+        // Switch to first remaining enabled club
+        const firstEnabled = CLUBS.find(c => c.enabled);
+        if (firstEnabled) {
+          currentClubKey = firstEnabled.key;
+        }
+
+        // Update admin panel message
+        if (adminPanelChannelId && adminPanelMessageId) {
+          try {
+            const channel = await client.channels.fetch(adminPanelChannelId);
+            const msg = await channel.messages.fetch(adminPanelMessageId);
+            await msg.edit({
+              embeds: [buildEmbedForClub(currentClubKey)],
+              components: buildAdminComponents()
+            });
+          } catch (err) {
+            console.error('⚠️ Failed to update admin panel after remove_club:', err);
+          }
+        }
+
+        return interaction.reply({
+          content: `Removed club **${currentClub.name}** from the panel.`,
+          ephemeral: true
+        });
+      }
+
+      const [prefix, pos] = interaction.customId.split('_');('_');
       if (prefix !== 'pos') return;
 
       const clubBoard = boardState[currentClubKey];
