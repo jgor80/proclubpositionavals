@@ -328,46 +328,36 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (!clubBoard.spots.hasOwnProperty(pos)) return;
 
       const slot = clubBoard.spots[pos];
+
       const isAdmin = interaction.memberPermissions?.has(
         PermissionsBitField.Flags.ManageGuild
       );
       const inVoice = interaction.member?.voice?.channelId;
 
-      // Non-admins must be in a voice channel to change spots
-      if (!isAdmin && !inVoice) {
+      // Everyone (including admins) must be in a voice channel to interact
+      if (!inVoice) {
         return interaction.reply({
           content: 'You must be **connected to a voice channel** in this server to claim or free a spot.',
           ephemeral: true
         });
       }
 
-      if (!isAdmin) {
-        // Player behavior: claim or unclaim own spot
-        if (slot.open) {
-          // Claim this spot for the user
-          slot.open = false;
-          slot.takenBy = interaction.user.id;
-        } else {
-          // Spot is taken
-          if (slot.takenBy === interaction.user.id) {
-            // User frees their own spot
-            slot.open = true;
-            slot.takenBy = null;
-          } else {
-            return interaction.reply({
-              content: 'This spot is already taken by someone else.',
-              ephemeral: true
-            });
-          }
-        }
+      // Claim / release logic
+      if (slot.open) {
+        // Claim this spot for the user
+        slot.open = false;
+        slot.takenBy = interaction.user.id;
       } else {
-        // Admin behavior: simple toggle, clear assignment when opening
-        if (slot.open) {
-          slot.open = false;
-          // leave takenBy as-is (null) unless you want to auto-assign to admin
-        } else {
+        // Spot is taken
+        if (slot.takenBy === interaction.user.id || isAdmin) {
+          // User (or admin) frees the spot
           slot.open = true;
           slot.takenBy = null;
+        } else {
+          return interaction.reply({
+            content: 'This spot is already taken by someone else.',
+            ephemeral: true
+          });
         }
       }
 
