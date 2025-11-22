@@ -37,7 +37,6 @@ const POSITIONS = [
 // Club definitions (keys + pretty names + shortcode commands)
 const CLUBS = [
   { key: 'rs',  name: 'Rush Superstars',  command: 'rs'  },
-  { key: 'rs1', name: 'RushSuperstars1',  command: 'rs1' },
   { key: 'rs2', name: 'RushSuperstars2',  command: 'rs2' }, // optional extra
   { key: 'rs3', name: 'RushSuperstars3',  command: 'rs3' }, // optional extra
   { key: 'rsa', name: 'RS Academy',       command: 'rsa' }
@@ -150,7 +149,6 @@ client.once(Events.ClientReady, async (c) => {
 
     // Shortcodes for specific clubs
     { name: 'rs',  description: 'Show Rush Superstars spots.' },
-    { name: 'rs1', description: 'Show RushSuperstars1 spots.' },
     { name: 'rsa', description: 'Show RS Academy spots.' },
 
     // Optional extras if you decide to use them:
@@ -158,7 +156,7 @@ client.once(Events.ClientReady, async (c) => {
     { name: 'rs3', description: 'Show RushSuperstars3 spots.' }
   ]);
 
-  console.log('✅ Commands registered: /div, /divpanel, /divall, /rs, /rs1, /rsa, /rs2, /rs3');
+  console.log('✅ Commands registered: /div, /divpanel, /divall, /rs, /rsa, /rs2, /rs3');
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
