@@ -286,10 +286,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
           return '**' + team.name + '** – ' + team.takenCount + '/' + team.totalCount + ' spots taken (' + posList + ')';
         });
 
-        const embed = new EmbedBuilder()
-          .setTitle('Active Teams')
-          .setDescription(lines.join('
-'));
+       const embed = new EmbedBuilder()
+  .setTitle('Active Teams')
+  .setDescription(lines.join('\n'));
 
         return interaction.reply({
           embeds: [embed],
