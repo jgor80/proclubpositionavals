@@ -40,7 +40,7 @@ const POSITIONS = [
   'GK'
 ];
 
-// Club definitions (generic; configurable via setup commands/buttons)
+// Club definitions (generic; configurable via panel buttons)
 let CLUBS = [
   { key: 'club1', name: 'Club 1', enabled: true },
   { key: 'club2', name: 'Club 2', enabled: false },
@@ -178,7 +178,7 @@ function buildViewerClubSelect(selectedKey) {
 function buildAdminComponents() {
   const clubRow = buildClubSelect();
 
-  // Control row: rename + add club + remove club + assign player (manager-only enforced in handlers)
+  // Control row: rename + add club + remove club + assign player + reset spots
   const controlRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('rename_club')
@@ -195,6 +195,10 @@ function buildAdminComponents() {
     new ButtonBuilder()
       .setCustomId('assign_player')
       .setLabel('Assign Player')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('reset_spots')
+      .setLabel('Reset Spots')
       .setStyle(ButtonStyle.Secondary)
   );
 
@@ -206,37 +210,13 @@ client.once(Events.ClientReady, async (c) => {
   console.log(`✅ Logged in as ${c.user.tag}`);
   console.log(`✅ App ID: ${c.application.id}`);
 
+  // Only two slash commands now: /spotpanel and /spots
   await c.application.commands.set([
-    { name: 'spots', description: 'Show spots for the current club (read-only).' },
     { name: 'spotpanel', description: 'Create the control panel for club spots.' },
-    { name: 'spotreset', description: 'Set all spots to OPEN for the current club.' },
-    {
-      name: 'spotsetup',
-      description: 'Configure base club name and number of clubs.',
-      options: [
-        {
-          type: 3,
-          name: 'basename',
-          description: 'Base club name (e.g. Rush Superstars)',
-          required: true
-        },
-        {
-          type: 4,
-          name: 'clubs',
-          description: 'Number of clubs/teams (1-4)',
-          required: true,
-          min_value: 1,
-          max_value: 4
-        }
-      ]
-    },
-    { name: 'spotclubs', description: 'Show all clubs with at least one OPEN spot.' },
-    { name: 'spotboard', description: 'Show a read-only board with club dropdown.' }
+    { name: 'spots', description: 'Show a read-only board with club dropdown.' }
   ]);
 
-  console.log(
-    '✅ Commands registered: /spots, /spotpanel, /spotreset, /spotsetup, /spotclubs, /spotboard'
-  );
+  console.log('✅ Commands registered: /spotpanel, /spots');
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -255,15 +235,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.isChatInputCommand()) {
       const cmd = interaction.commandName;
 
-      // Generic "current club" view
-      if (cmd === 'spots') {
-        return interaction.reply({
-          embeds: [buildEmbedForClub(currentClubKey)],
-          components: [] // read-only
-        });
-      }
-
-      // Manager: create panel
+      // /spotpanel – admin/captain control panel
       if (cmd === 'spotpanel') {
         if (!isManager(interaction.member)) {
           return interaction.reply({
@@ -289,168 +261,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
-      // Manager: reset current club
-      if (cmd === 'spotreset') {
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content: 'Only admins or captains can reset spots.',
-            ephemeral: true
-          });
+      // /spots – public read-only board (like old /spotboard)
+      if (cmd === 'spots') {
+        // Default to whichever club the panel is currently editing, if it's enabled
+        let key = currentClubKey;
+        const currentClub = getClubByKey(key);
+        if (!currentClub || !currentClub.enabled) {
+          const firstEnabled = CLUBS.find((c) => c.enabled) || CLUBS[0];
+          key = firstEnabled ? firstEnabled.key : currentClubKey;
         }
-
-        const clubBoard = boardState[currentClubKey];
-        POSITIONS.forEach((p) => {
-          clubBoard.spots[p].open = true;
-          clubBoard.spots[p].takenBy = null;
-        });
-
-        // Update admin panel if it exists
-        if (adminPanelChannelId && adminPanelMessageId) {
-          try {
-            const channel = await client.channels.fetch(adminPanelChannelId);
-            const msg = await channel.messages.fetch(adminPanelMessageId);
-            await msg.edit({
-              embeds: [buildEmbedForClub(currentClubKey)],
-              components: buildAdminComponents()
-            });
-          } catch (err) {
-            console.error('⚠️ Failed to update admin panel after /spotreset:', err);
-          }
-        }
-
-        return interaction.reply({
-          content: 'All spots set to 🟢 OPEN for the current club.',
-          ephemeral: true
-        });
-      }
-
-      // Manager: configure club name and number of clubs
-      if (cmd === 'spotsetup') {
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content: 'Only admins or captains can configure clubs.',
-            ephemeral: true
-          });
-        }
-
-        const basename = interaction.options.getString('basename');
-        let clubCount = interaction.options.getInteger('clubs');
-
-        if (clubCount < 1) clubCount = 1;
-        if (clubCount > 4) clubCount = 4;
-
-        // Update CLUBS array names + enabled flags
-        CLUBS.forEach((club, index) => {
-          if (index < clubCount) {
-            club.enabled = true;
-            club.name = clubCount === 1 ? basename : `${basename} ${index + 1}`;
-          } else {
-            club.enabled = false;
-          }
-        });
-
-        // Rebuild boardState for all clubs (clear spots)
-        CLUBS.forEach((club) => {
-          if (!boardState[club.key]) {
-            boardState[club.key] = { spots: {} };
-          }
-          const clubBoard = boardState[club.key];
-          clubBoard.spots = POSITIONS.reduce((acc, p) => {
-            acc[p] = { open: true, takenBy: null };
-            return acc;
-          }, {});
-        });
-
-        // Ensure currentClubKey points to an enabled club
-        const firstEnabled = CLUBS.find((c) => c.enabled);
-        if (firstEnabled) {
-          currentClubKey = firstEnabled.key;
-        }
-
-        // Update admin panel if it exists
-        if (adminPanelChannelId && adminPanelMessageId) {
-          try {
-            const channel = await client.channels.fetch(adminPanelChannelId);
-            const msg = await channel.messages.fetch(adminPanelMessageId);
-            await msg.edit({
-              embeds: [buildEmbedForClub(currentClubKey)],
-              components: buildAdminComponents()
-            });
-          } catch (err) {
-            console.error('⚠️ Failed to update admin panel after /spotsetup:', err);
-          }
-        }
-
-        return interaction.reply({
-          content: `Configured **${clubCount}** club(s) with base name **${basename}**.`,
-          ephemeral: true
-        });
-      }
-
-      // /spotclubs – show summary of all clubs (open vs taken spots)
-      if (cmd === 'spotclubs') {
-        const teams = [];
-
-        for (const club of CLUBS) {
-          if (!club.enabled) continue;
-          const board = boardState[club.key];
-          if (!board || !board.spots) continue;
-
-          const entries = Object.entries(board.spots);
-
-          const openPositions = [];
-          const takenPositions = [];
-
-          for (const [pos, slot] of entries) {
-            if (!slot) continue;
-            if (slot.open) {
-              openPositions.push(pos);
-            } else {
-              takenPositions.push(pos);
-            }
-          }
-
-          teams.push({
-            name: club.name,
-            openCount: openPositions.length,
-            takenCount: takenPositions.length,
-            totalCount: entries.length,
-            openPositions,
-            takenPositions
-          });
-        }
-
-        if (teams.length === 0) {
-          return interaction.reply({
-            content: 'No clubs configured yet. Use /spotsetup or the panel to add clubs.',
-            ephemeral: false
-          });
-        }
-
-        const lines = teams.map((team) => {
-          const openList = team.openPositions.length
-            ? team.openPositions.join(', ')
-            : 'none';
-          const takenList = team.takenPositions.length
-            ? team.takenPositions.join(', ')
-            : 'none';
-          return `**${team.name}** – Open: ${team.openCount}/${team.totalCount} ( ${openList} ) | Taken: ${team.takenCount} ( ${takenList} )`;
-        });
-
-        const embed = new EmbedBuilder()
-          .setTitle('Club Spot Summary')
-          .setDescription(lines.join('
-'));
-
-        return interaction.reply({
-          embeds: [embed],
-          ephemeral: false
-        });
-      }}
-// /spotboard – public read-only board with club dropdown
-      if (cmd === 'spotboard') {
-        const firstEnabled = CLUBS.find((c) => c.enabled) || CLUBS[0];
-        const key = firstEnabled ? firstEnabled.key : currentClubKey;
 
         return interaction.reply({
           embeds: [buildEmbedForClub(key)],
@@ -460,7 +279,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    // Buttons (admin panel: manage clubs + assign VC players + players self-claim spots)
+    // Buttons (admin panel: manage clubs + assign VC players + reset + players self-claim spots)
     if (interaction.isButton()) {
       // Handle rename button
       if (interaction.customId === 'rename_club') {
@@ -584,7 +403,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           if (hasTaken) {
             return interaction.reply({
               content:
-                'This club still has taken spots. Free all spots first (use /spotreset or buttons) before removing it.',
+                'This club still has taken spots. Free all spots first (use Reset Spots button or players unclaim) before removing it.',
               ephemeral: true
             });
           }
@@ -625,6 +444,41 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         return interaction.reply({
           content: `Removed club **${currentClub.name}** from the panel.`,
+          ephemeral: true
+        });
+      }
+
+      // Handle Reset Spots button
+      if (interaction.customId === 'reset_spots') {
+        if (!isManager(interaction.member)) {
+          return interaction.reply({
+            content: 'Only admins or captains can reset spots.',
+            ephemeral: true
+          });
+        }
+
+        const clubBoard = boardState[currentClubKey];
+        POSITIONS.forEach((p) => {
+          clubBoard.spots[p].open = true;
+          clubBoard.spots[p].takenBy = null;
+        });
+
+        // Update admin panel if it exists
+        if (adminPanelChannelId && adminPanelMessageId) {
+          try {
+            const channel = await client.channels.fetch(adminPanelChannelId);
+            const msg = await channel.messages.fetch(adminPanelMessageId);
+            await msg.edit({
+              embeds: [buildEmbedForClub(currentClubKey)],
+              components: buildAdminComponents()
+            });
+          } catch (err) {
+            console.error('⚠️ Failed to update admin panel after reset_spots:', err);
+          }
+        }
+
+        return interaction.reply({
+          content: 'All spots set to 🟢 OPEN for the current club.',
           ephemeral: true
         });
       }
@@ -780,7 +634,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.isStringSelectMenu()) {
       const id = interaction.customId;
 
-      // Public viewer club select
+      // Public viewer club select (/spots board)
       if (id === 'viewer_club_select') {
         const selectedKey = interaction.values[0];
         const club = getClubByKey(selectedKey);
