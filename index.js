@@ -37,20 +37,17 @@ const POSITIONS = [
   'GK'
 ];
 
-// Club definitions (keys + pretty names + shortcode commands)
-const CLUBS = [
-  { key: 'rs',  name: 'Rush Superstars',  command: 'rs'  },
-  { key: 'rs2', name: 'RushSuperstars2',  command: 'rs2' }, // optional extra
-  { key: 'rs3', name: 'RushSuperstars3',  command: 'rs3' }, // optional extra
-  { key: 'rsa', name: 'RS Academy',       command: 'rsa' }
+// Club definitions (generic; configurable via /divsetup)
+let CLUBS = [
+  { key: 'club1', name: 'Club 1', enabled: true },
+  { key: 'club2', name: 'Club 2', enabled: false },
+  { key: 'club3', name: 'Club 3', enabled: false },
+  { key: 'club4', name: 'Club 4', enabled: false }
 ];
 
 // Helpers to find clubs
 function getClubByKey(key) {
   return CLUBS.find(c => c.key === key);
-}
-function getClubByCommand(cmd) {
-  return CLUBS.find(c => c.command === cmd);
 }
 
 // Global multi-club board state:
@@ -131,11 +128,12 @@ function buildButtons() {
 
 // Build club dropdown (for admin panel)
 function buildClubSelect() {
+  const enabledClubs = CLUBS.filter(club => club.enabled);
   const select = new StringSelectMenuBuilder()
     .setCustomId('club_select')
     .setPlaceholder('Select club')
     .addOptions(
-      CLUBS.map((club) => ({
+      enabledClubs.map((club) => ({
         label: club.name,
         value: club.key,
         default: club.key === currentClubKey
@@ -180,18 +178,30 @@ client.once(Events.ClientReady, async (c) => {
         }
       ]
     },
-    { name: 'divactive', description: 'Show all clubs with at least one taken spot.' },
-
-    // Shortcodes for specific clubs
-    { name: 'rs',  description: 'Show Rush Superstars spots.' },
-    { name: 'rsa', description: 'Show RS Academy spots.' },
-
-    // Optional extras if you decide to use them:
-    { name: 'rs2', description: 'Show RushSuperstars2 spots.' },
-    { name: 'rs3', description: 'Show RushSuperstars3 spots.' }
+    {
+      name: 'divsetup',
+      description: 'Configure club name and number of clubs.',
+      options: [
+        {
+          type: 3,
+          name: 'basename',
+          description: 'Base club name (e.g. Rush Superstars)',
+          required: true
+        },
+        {
+          type: 4,
+          name: 'clubs',
+          description: 'Number of clubs/teams (1-4)',
+          required: true,
+          min_value: 1,
+          max_value: 4
+        }
+      ]
+    },
+    { name: 'divactive', description: 'Show all clubs with at least one taken spot.' }
   ]);
 
-  console.log('✅ Commands registered: /div, /divpanel, /divall, /divassign, /divactive, /rs, /rsa, /rs2, /rs3');
+  console.log('✅ Commands registered: /div, /divpanel, /divall, /divassign, /divsetup, /divactive');
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -259,6 +269,100 @@ client.on(Events.InteractionCreate, async (interaction) => {
             content: 'Only admins can reset spots.',
             ephemeral: true
           });
+        }
+
+        const clubBoard = boardState[currentClubKey];
+        POSITIONS.forEach((p) => {
+          clubBoard.spots[p].open = true;
+          clubBoard.spots[p].takenBy = null;
+        });
+
+        // Update admin panel if it exists
+        if (adminPanelChannelId && adminPanelMessageId) {
+          try {
+            const channel = await client.channels.fetch(adminPanelChannelId);
+            const msg = await channel.messages.fetch(adminPanelMessageId);
+            await msg.edit({
+              embeds: [buildEmbedForClub(currentClubKey)],
+              components: buildAdminComponents()
+            });
+          } catch (err) {
+            console.error('⚠️ Failed to update admin panel after /divall:', err);
+          }
+        }
+
+        return interaction.reply({
+          content: 'All spots set to 🟢 OPEN for the current club.',
+          ephemeral: true
+        });
+      }
+
+      // Admin: configure club name and number of clubs
+      if (cmd === 'divsetup') {
+        if (
+          !interaction.memberPermissions?.has(
+            PermissionsBitField.Flags.ManageGuild
+          )
+        ) {
+          return interaction.reply({
+            content: 'Only admins can configure clubs.',
+            ephemeral: true
+          });
+        }
+
+        const basename = interaction.options.getString('basename');
+        let clubCount = interaction.options.getInteger('clubs');
+
+        if (clubCount < 1) clubCount = 1;
+        if (clubCount > 4) clubCount = 4;
+
+        // Update CLUBS array names + enabled flags
+        CLUBS.forEach((club, index) => {
+          if (index < clubCount) {
+            club.enabled = true;
+            club.name = clubCount === 1 ? basename : `${basename} ${index + 1}`;
+          } else {
+            club.enabled = false;
+          }
+        });
+
+        // Rebuild boardState for all clubs (clear spots)
+        CLUBS.forEach((club) => {
+          if (!boardState[club.key]) {
+            boardState[club.key] = { spots: {} };
+          }
+          const clubBoard = boardState[club.key];
+          clubBoard.spots = POSITIONS.reduce((acc, p) => {
+            acc[p] = { open: true, takenBy: null };
+            return acc;
+          }, {});
+        });
+
+        // Ensure currentClubKey points to an enabled club
+        const firstEnabled = CLUBS.find(c => c.enabled);
+        if (firstEnabled) {
+          currentClubKey = firstEnabled.key;
+        }
+
+        // Update admin panel if it exists
+        if (adminPanelChannelId && adminPanelMessageId) {
+          try {
+            const channel = await client.channels.fetch(adminPanelChannelId);
+            const msg = await channel.messages.fetch(adminPanelMessageId);
+            await msg.edit({
+              embeds: [buildEmbedForClub(currentClubKey)],
+              components: buildAdminComponents()
+            });
+          } catch (err) {
+            console.error('⚠️ Failed to update admin panel after /divsetup:', err);
+          }
+        }
+
+        return interaction.reply({
+          content: `Configured **${clubCount}** club(s) with base name **${basename}**.`,
+          ephemeral: true
+        });
+      }
         }
 
         const clubBoard = boardState[currentClubKey];
@@ -380,6 +484,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const activeTeams = [];
 
         for (const club of CLUBS) {
+          if (!club.enabled) continue;
           const board = boardState[club.key];
           if (!board || !board.spots) continue;
 
@@ -421,13 +526,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Shortcodes for specific clubs: /rs, /rs2, /rs3, /rsa
-      const shortcodeClub = getClubByCommand(cmd);
-      if (shortcodeClub) {
-        return interaction.reply({
-          embeds: [buildEmbedForClub(shortcodeClub.key)],
-          components: [] // read-only
-        });
+
       }
     }
 
