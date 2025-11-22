@@ -17,7 +17,8 @@ if (!token) {
   process.exit(1);
 }
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+// Add GuildVoiceStates so we can see who is in voice channels
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates] });
 
 // Positions to track
 const POSITIONS = [
@@ -51,12 +52,12 @@ function getClubByCommand(cmd) {
 }
 
 // Global multi-club board state:
-// clubKey -> { spots: { [pos]: boolean } }
+// clubKey -> { spots: { [pos]: { open: boolean, takenBy: string | null } } }
 const boardState = {};
 CLUBS.forEach(club => {
   boardState[club.key] = {
     spots: POSITIONS.reduce((acc, p) => {
-      acc[p] = true; // true = OPEN
+      acc[p] = { open: true, takenBy: null }; // true = OPEN, false = TAKEN
       return acc;
     }, {})
   };
@@ -78,16 +79,24 @@ function buildEmbedForClub(clubKey) {
 
   const clubBoard = boardState[clubKey];
   const lines = POSITIONS.map((p) => {
-    const open = clubBoard.spots[p];
+    const slot = clubBoard.spots[p];
+    const open = slot.open;
     const emoji = open ? '🟢' : '🔴';
-    const text = open ? 'OPEN' : 'TAKEN';
+    let text;
+    if (open) {
+      text = 'OPEN';
+    } else if (slot.takenBy) {
+      text = `TAKEN by <@${slot.takenBy}>`;
+    } else {
+      text = 'TAKEN';
+    }
     return `**${p}** – ${emoji} ${text}`;
   });
 
   return new EmbedBuilder()
     .setTitle('Div Spots')
     .setDescription(`**Club:** ${club.name}\n\n` + lines.join('\n'))
-    .setFooter({ text: 'Admins: use the panel to change spots/club.' });
+    .setFooter({ text: 'Admins: use the panel to change spots/club. Players: click a spot while in VC to claim it.' });
 }
 
 // Build position buttons (for the CURRENT club in the panel)
@@ -97,7 +106,8 @@ function buildButtons() {
   let currentRow = new ActionRowBuilder();
 
   POSITIONS.forEach((p, index) => {
-    const open = clubBoard.spots[p];
+    const slot = clubBoard.spots[p];
+    const open = slot.open;
     const button = new ButtonBuilder()
       .setCustomId(`pos_${p}`)
       .setLabel(p)
@@ -228,7 +238,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
 
         const clubBoard = boardState[currentClubKey];
-        POSITIONS.forEach((p) => (clubBoard.spots[p] = true));
+        POSITIONS.forEach((p) => {
+          clubBoard.spots[p].open = true;
+          clubBoard.spots[p].takenBy = null;
+        });
 
         // Update admin panel if it exists
         if (adminPanelChannelId && adminPanelMessageId) {
@@ -259,9 +272,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
           if (!board || !board.spots) continue;
 
           const entries = Object.entries(board.spots);
-          // true = OPEN, false = TAKEN
+          // open=false => TAKEN
           const takenPositions = entries
-            .filter(([, isOpen]) => isOpen === false)
+            .filter(([, slot]) => slot && slot.open === false)
             .map(([pos]) => pos);
 
           if (takenPositions.length === 0) continue;
@@ -286,9 +299,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
           return '**' + team.name + '** – ' + team.takenCount + '/' + team.totalCount + ' spots taken (' + posList + ')';
         });
 
-       const embed = new EmbedBuilder()
-  .setTitle('Active Teams')
-  .setDescription(lines.join('\n'));
+        const embed = new EmbedBuilder()
+          .setTitle('Active Teams')
+          .setDescription(lines.join('\n'));
 
         return interaction.reply({
           embeds: [embed],
@@ -306,7 +319,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    // Buttons (admin panel: change spots for current club)
+    // Buttons (admin panel + player signups)
     if (interaction.isButton()) {
       const [prefix, pos] = interaction.customId.split('_');
       if (prefix !== 'pos') return;
@@ -314,18 +327,49 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const clubBoard = boardState[currentClubKey];
       if (!clubBoard.spots.hasOwnProperty(pos)) return;
 
-      if (
-        !interaction.memberPermissions?.has(
-          PermissionsBitField.Flags.ManageGuild
-          )
-      ) {
+      const slot = clubBoard.spots[pos];
+      const isAdmin = interaction.memberPermissions?.has(
+        PermissionsBitField.Flags.ManageGuild
+      );
+      const inVoice = interaction.member?.voice?.channelId;
+
+      // Non-admins must be in a voice channel to change spots
+      if (!isAdmin && !inVoice) {
         return interaction.reply({
-          content: 'Only admins can change spots.',
+          content: 'You must be **connected to a voice channel** in this server to claim or free a spot.',
           ephemeral: true
         });
       }
 
-      clubBoard.spots[pos] = !clubBoard.spots[pos];
+      if (!isAdmin) {
+        // Player behavior: claim or unclaim own spot
+        if (slot.open) {
+          // Claim this spot for the user
+          slot.open = false;
+          slot.takenBy = interaction.user.id;
+        } else {
+          // Spot is taken
+          if (slot.takenBy === interaction.user.id) {
+            // User frees their own spot
+            slot.open = true;
+            slot.takenBy = null;
+          } else {
+            return interaction.reply({
+              content: 'This spot is already taken by someone else.',
+              ephemeral: true
+            });
+          }
+        }
+      } else {
+        // Admin behavior: simple toggle, clear assignment when opening
+        if (slot.open) {
+          slot.open = false;
+          // leave takenBy as-is (null) unless you want to auto-assign to admin
+        } else {
+          slot.open = true;
+          slot.takenBy = null;
+        }
+      }
 
       return interaction.update({
         embeds: [buildEmbedForClub(currentClubKey)],
@@ -376,4 +420,3 @@ client.on(Events.InteractionCreate, async (interaction) => {
 });
 
 client.login(token);
-
