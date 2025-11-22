@@ -601,4 +601,57 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
+// When someone leaves voice, clear any spots they held
+client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
+  try {
+    // Only care about leaving all voice channels in this guild
+    // oldState.channelId exists (they were in VC)
+    // newState.channelId is null (they disconnected)
+    if (!oldState.guild || !oldState.channelId) return;
+    if (newState.channelId) return; // still in some VC, ignore
+
+    const userId = oldState.id;
+    const touchedClubKeys = new Set();
+
+    // Look through every club and clear any spots held by this user
+    for (const clubKey of Object.keys(boardState)) {
+      const clubBoard = boardState[clubKey];
+      if (!clubBoard || !clubBoard.spots) continue;
+
+      let changed = false;
+
+      for (const pos of POSITIONS) {
+        const slot = clubBoard.spots[pos];
+        if (slot && slot.takenBy === userId) {
+          slot.open = true;
+          slot.takenBy = null;
+          changed = true;
+        }
+      }
+
+      if (changed) touchedClubKeys.add(clubKey);
+    }
+
+    // If the currently displayed club was changed, update the admin panel message
+    if (
+      touchedClubKeys.has(currentClubKey) &&
+      adminPanelChannelId &&
+      adminPanelMessageId
+    ) {
+      try {
+        const channel = await client.channels.fetch(adminPanelChannelId);
+        const msg = await channel.messages.fetch(adminPanelMessageId);
+        await msg.edit({
+          embeds: [buildEmbedForClub(currentClubKey)],
+          components: buildAdminComponents()
+        });
+      } catch (err) {
+        console.error('⚠️ Failed to update admin panel after voice leave:', err);
+      }
+    }
+  } catch (err) {
+    console.error('❌ Error in VoiceStateUpdate handler:', err);
+  }
+});
+
 client.login(token);
