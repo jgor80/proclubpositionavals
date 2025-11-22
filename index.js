@@ -107,12 +107,10 @@ function buildEmbedForClub(clubKey) {
 
   return new EmbedBuilder()
     .setTitle('Club Spots')
-    .setDescription(`**Club:** ${club.name}
-
-` + lines.join('
-'))
+    .setDescription(`**Club:** ${club.name}\n\n` + lines.join('\n'))
     .setFooter({
-      text: 'Players: click a spot to claim. Admins/Captains: use the panel controls to manage spots & clubs.'
+      text:
+        'Players: click a spot to claim. Admins/Captains: use the panel controls to manage spots & clubs.'
     });
 }
 
