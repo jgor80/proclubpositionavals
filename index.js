@@ -109,7 +109,7 @@ function buildEmbedForClub(clubKey) {
     .setTitle('Club Spots')
     .setDescription(`**Club:** ${club.name}\n\n` + lines.join('\n'))
     .setFooter({
-      text: 'Admins/Captains: use the panel to manage spots and clubs.'
+      text: 'Players: click a spot to claim. Admins/Captains: use the panel controls to manage spots & clubs.'
     });
 }
 
@@ -156,11 +156,11 @@ function buildClubSelect() {
   return row;
 }
 
-// Components for the admin panel (dropdown + buttons)
+// Components for the admin panel (dropdown + controls + position buttons)
 function buildAdminComponents() {
   const clubRow = buildClubSelect();
 
-  // Control row: rename + add club + remove club (manager-only enforced in handlers)
+  // Control row: rename + add club + remove club + assign player (manager-only enforced in handlers)
   const controlRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('rename_club')
@@ -173,7 +173,11 @@ function buildAdminComponents() {
     new ButtonBuilder()
       .setCustomId('remove_club')
       .setLabel('Remove Club')
-      .setStyle(ButtonStyle.Danger)
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setCustomId('assign_player')
+      .setLabel('Assign Player')
+      .setStyle(ButtonStyle.Secondary)
   );
 
   const buttonRows = buildButtons();
@@ -211,7 +215,9 @@ client.once(Events.ClientReady, async (c) => {
     { name: 'spotclubs', description: 'Show all clubs with at least one OPEN spot.' }
   ]);
 
-  console.log('✅ Commands registered: /spots, /spotpanel, /spotreset, /spotsetup, /spotclubs');
+  console.log(
+    '✅ Commands registered: /spots, /spotpanel, /spotreset, /spotsetup, /spotclubs'
+  );
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -410,9 +416,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    // Buttons (admin panel: manage clubs + assign VC players)
+    // Buttons (admin panel: manage clubs + assign VC players + players self-claim spots)
     if (interaction.isButton()) {
-      // Handle rename button separately
+      // Handle rename button
       if (interaction.customId === 'rename_club') {
         if (!isManager(interaction.member)) {
           return interaction.reply({
@@ -543,7 +549,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         // Disable this club
         currentClub.enabled = false;
 
-        // Optionally clear its board
+        // Clear its board
         if (clubBoard && clubBoard.spots) {
           POSITIONS.forEach((p) => {
             if (clubBoard.spots[p]) {
@@ -579,18 +585,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Position buttons: manager assigns from their current VC
-      if (interaction.customId.startsWith('pos_')) {
+      // Handle Assign Player button (manager picks player then spot)
+      if (interaction.customId === 'assign_player') {
         if (!isManager(interaction.member)) {
           return interaction.reply({
-            content: 'Only admins or captains can assign players to spots.',
+            content: 'Only admins or captains can assign players.',
             ephemeral: true
           });
         }
-
-        const pos = interaction.customId.split('pos_')[1];
-        const clubBoard = boardState[currentClubKey];
-        if (!clubBoard || !clubBoard.spots.hasOwnProperty(pos)) return;
 
         const voiceChannel = interaction.member?.voice?.channel;
         if (!voiceChannel) {
@@ -601,7 +603,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        const members = [...voiceChannel.members.values()].filter((m) => !m.user.bot);
+        const members = [...voiceChannel.members.values()].filter(
+          (m) => !m.user.bot
+        );
         if (members.length === 0) {
           return interaction.reply({
             content: 'No non-bot players found in your voice channel to assign.',
@@ -614,24 +618,67 @@ client.on(Events.InteractionCreate, async (interaction) => {
           value: m.id
         }));
 
-        // Add a "clear" option at the top
-        options.unshift({
-          label: 'Clear spot (mark OPEN)',
-          value: 'none'
-        });
-
         const select = new StringSelectMenuBuilder()
-          .setCustomId(`assign_${currentClubKey}_${pos}`)
-          .setPlaceholder(`Assign ${pos}`)
-          .addOptions(options.slice(0, 25)); // Discord limit
+          .setCustomId(`assign_player_pick_${currentClubKey}`)
+          .setPlaceholder('Pick a player')
+          .addOptions(options.slice(0, 25));
 
         const row = new ActionRowBuilder().addComponents(select);
         const club = getClubByKey(currentClubKey);
 
         return interaction.reply({
-          content: `Pick a player for **${pos}** in **${club ? club.name : currentClubKey}**:`,
+          content: `Pick a player to assign in **${club ? club.name : currentClubKey}**:`,
           components: [row],
           ephemeral: true
+        });
+      }
+
+      // Position buttons: players (and managers) self-claim / free their own spot
+      if (interaction.customId.startsWith('pos_')) {
+        const pos = interaction.customId.substring('pos_'.length);
+        const clubBoard = boardState[currentClubKey];
+        if (!clubBoard || !clubBoard.spots.hasOwnProperty(pos)) return;
+
+        const inVoice = interaction.member?.voice?.channelId;
+        if (!inVoice) {
+          return interaction.reply({
+            content: 'You must be connected to a voice channel to claim or free a spot.',
+            ephemeral: true
+          });
+        }
+
+        const userId = interaction.user.id;
+        const slot = clubBoard.spots[pos];
+
+        if (slot.open) {
+          // Claim: clear any other spots this user holds in this club
+          for (const p of POSITIONS) {
+            const s = clubBoard.spots[p];
+            if (s && s.takenBy === userId) {
+              s.open = true;
+              s.takenBy = null;
+            }
+          }
+          slot.open = false;
+          slot.takenBy = userId;
+        } else {
+          // Slot is taken
+          if (slot.takenBy === userId) {
+            // User frees their own spot
+            slot.open = true;
+            slot.takenBy = null;
+          } else {
+            return interaction.reply({
+              content:
+                'This spot is already taken by someone else. Ask a captain if you need to be moved.',
+              ephemeral: true
+            });
+          }
+        }
+
+        return interaction.update({
+          embeds: [buildEmbedForClub(currentClubKey)],
+          components: buildAdminComponents()
         });
       }
     }
@@ -715,19 +762,52 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Assignment select: assign_<clubKey>_<pos>
-      if (id.startsWith('assign_')) {
+      // First step of manager assignment: pick player
+      if (id.startsWith('assign_player_pick_')) {
         if (!isManager(interaction.member)) {
           return interaction.reply({
-            content: 'Only admins or captains can assign players to spots.',
+            content: 'Only admins or captains can assign players.',
             ephemeral: true
           });
         }
 
-        const parts = id.split('_');
-        // ["assign", clubKey, pos]
-        const clubKey = parts[1];
-        const pos = parts[2];
+        const clubKey = id.substring('assign_player_pick_'.length);
+        const club = getClubByKey(clubKey);
+        if (!club) {
+          return interaction.reply({
+            content: 'Unknown club in assignment request.',
+            ephemeral: true
+          });
+        }
+
+        const userId = interaction.values[0];
+
+        const posSelect = new StringSelectMenuBuilder()
+          .setCustomId(`assign_player_pos_${clubKey}_${userId}`)
+          .setPlaceholder('Pick a spot')
+          .addOptions(POSITIONS.map((p) => ({ label: p, value: p })));
+
+        const row = new ActionRowBuilder().addComponents(posSelect);
+
+        return interaction.update({
+          content: `Now pick a spot for <@${userId}> in **${club.name}**:`,
+          components: [row]
+        });
+      }
+
+      // Second step of manager assignment: pick spot
+      if (id.startsWith('assign_player_pos_')) {
+        if (!isManager(interaction.member)) {
+          return interaction.reply({
+            content: 'Only admins or captains can assign players.',
+            ephemeral: true
+          });
+        }
+
+        const parts = id.split('_'); // ['assign', 'player', 'pos', clubKey, userId]
+        const clubKey = parts[3];
+        const userId = parts[4];
+        const pos = interaction.values[0];
 
         const club = getClubByKey(clubKey);
         if (!club) {
@@ -745,27 +825,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        const selected = interaction.values[0];
-
-        if (selected === 'none') {
-          // Clear spot
-          clubBoard.spots[pos].open = true;
-          clubBoard.spots[pos].takenBy = null;
-        } else {
-          // Assign this user, and clear any other spots they hold in this club
-          const userId = selected;
-
-          for (const p of POSITIONS) {
-            const s = clubBoard.spots[p];
-            if (s && s.takenBy === userId) {
-              s.open = true;
-              s.takenBy = null;
-            }
+        // Clear any spots this user holds in this club
+        for (const p of POSITIONS) {
+          const s = clubBoard.spots[p];
+          if (s && s.takenBy === userId) {
+            s.open = true;
+            s.takenBy = null;
           }
-
-          clubBoard.spots[pos].open = false;
-          clubBoard.spots[pos].takenBy = userId;
         }
+
+        // Assign to chosen spot (override previous occupant)
+        const slot = clubBoard.spots[pos];
+        slot.open = false;
+        slot.takenBy = userId;
 
         // If this is the currently displayed club, update the admin panel
         if (clubKey === currentClubKey && adminPanelChannelId && adminPanelMessageId) {
@@ -781,9 +853,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
           }
         }
 
-        return interaction.reply({
-          content: 'Spot updated.',
-          ephemeral: true
+        return interaction.update({
+          content: `Assigned <@${userId}> to **${pos}** in **${club.name}**.`,
+          components: []
         });
       }
     }
