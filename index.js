@@ -151,16 +151,20 @@ function buildClubSelect() {
 function buildAdminComponents() {
   const clubRow = buildClubSelect();
 
-  // Rename button row (admins only enforced in handler)
-  const renameRow = new ActionRowBuilder().addComponents(
+  // Control row: rename + add club (admin-only enforced in handlers)
+  const controlRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('rename_club')
       .setLabel('Rename Club')
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId('add_club')
+      .setLabel('Add Club')
+      .setStyle(ButtonStyle.Secondary)
   );
 
   const buttonRows = buildButtons();
-  return [clubRow, renameRow, ...buttonRows];
+  return [clubRow, controlRow, ...buttonRows];
 }
 
 client.once(Events.ClientReady, async (c) => {
@@ -551,6 +555,62 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         await interaction.showModal(modal);
         return;
+      }
+
+      // Handle add-club button
+      if (interaction.customId === 'add_club') {
+        if (
+          !interaction.memberPermissions?.has(
+            PermissionsBitField.Flags.ManageGuild
+          )
+        ) {
+          return interaction.reply({
+            content: 'Only admins can add clubs.',
+            ephemeral: true
+          });
+        }
+
+        // Find first disabled club slot
+        const disabledClub = CLUBS.find(c => !c.enabled);
+        if (!disabledClub) {
+          return interaction.reply({
+            content: 'All available club slots are already in use (max 4).',
+            ephemeral: true
+          });
+        }
+
+        disabledClub.enabled = true;
+
+        // Initialize board state for this club if needed
+        if (!boardState[disabledClub.key]) {
+          boardState[disabledClub.key] = { spots: {} };
+        }
+        boardState[disabledClub.key].spots = POSITIONS.reduce((acc, p) => {
+          acc[p] = { open: true, takenBy: null };
+          return acc;
+        }, {});
+
+        // Switch panel to this new club
+        currentClubKey = disabledClub.key;
+
+        // Update admin panel message
+        if (adminPanelChannelId && adminPanelMessageId) {
+          try {
+            const channel = await client.channels.fetch(adminPanelChannelId);
+            const msg = await channel.messages.fetch(adminPanelMessageId);
+            await msg.edit({
+              embeds: [buildEmbedForClub(currentClubKey)],
+              components: buildAdminComponents()
+            });
+          } catch (err) {
+            console.error('⚠️ Failed to update admin panel after add_club:', err);
+          }
+        }
+
+        return interaction.reply({
+          content: `Added a new club slot: **${disabledClub.name}**. Use "Rename Club" to give it a custom name.`,
+          ephemeral: true
+        });
       }
 
       const [prefix, pos] = interaction.customId.split('_');
