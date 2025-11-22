@@ -7,7 +7,10 @@ const {
   ButtonStyle,
   EmbedBuilder,
   PermissionsBitField,
-  StringSelectMenuBuilder
+  StringSelectMenuBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle
 } = require('discord.js');
 
 // Get token from environment variable only
@@ -147,8 +150,17 @@ function buildClubSelect() {
 // Components for the admin panel (dropdown + buttons)
 function buildAdminComponents() {
   const clubRow = buildClubSelect();
+
+  // Rename button row (admins only enforced in handler)
+  const renameRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('rename_club')
+      .setLabel('Rename Club')
+      .setStyle(ButtonStyle.Primary)
+  );
+
   const buttonRows = buildButtons();
-  return [clubRow, ...buttonRows];
+  return [clubRow, renameRow, ...buttonRows];
 }
 
 client.once(Events.ClientReady, async (c) => {
@@ -502,6 +514,45 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     // Buttons (admin panel + player signups)
     if (interaction.isButton()) {
+      // Handle rename button separately
+      if (interaction.customId === 'rename_club') {
+        if (
+          !interaction.memberPermissions?.has(
+            PermissionsBitField.Flags.ManageGuild
+          )
+        ) {
+          return interaction.reply({
+            content: 'Only admins can rename clubs.',
+            ephemeral: true
+          });
+        }
+
+        const currentClub = getClubByKey(currentClubKey);
+        if (!currentClub) {
+          return interaction.reply({
+            content: 'Current club not found.',
+            ephemeral: true
+          });
+        }
+
+        const modal = new ModalBuilder()
+          .setCustomId('rename_club_modal')
+          .setTitle('Rename Club')
+          .addComponents(
+            new ActionRowBuilder().addComponents(
+              new TextInputBuilder()
+                .setCustomId('club_name')
+                .setLabel('New club name')
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true)
+                .setValue(currentClub.name)
+            )
+          );
+
+        await interaction.showModal(modal);
+        return;
+      }
+
       const [prefix, pos] = interaction.customId.split('_');
       if (prefix !== 'pos') return;
 
@@ -557,6 +608,59 @@ client.on(Events.InteractionCreate, async (interaction) => {
         embeds: [buildEmbedForClub(currentClubKey)],
         components: buildAdminComponents()
       });
+    }
+
+    // Modal submissions (rename club)
+    if (interaction.isModalSubmit()) {
+      if (interaction.customId === 'rename_club_modal') {
+        if (
+          !interaction.memberPermissions?.has(
+            PermissionsBitField.Flags.ManageGuild
+          )
+        ) {
+          return interaction.reply({
+            content: 'Only admins can rename clubs.',
+            ephemeral: true
+          });
+        }
+
+        const newName = interaction.fields.getTextInputValue('club_name').trim();
+        if (!newName) {
+          return interaction.reply({
+            content: 'Club name cannot be empty.',
+            ephemeral: true
+          });
+        }
+
+        const currentClub = getClubByKey(currentClubKey);
+        if (!currentClub) {
+          return interaction.reply({
+            content: 'Current club not found.',
+            ephemeral: true
+          });
+        }
+
+        currentClub.name = newName;
+
+        // Update admin panel if it exists
+        if (adminPanelChannelId && adminPanelMessageId) {
+          try {
+            const channel = await client.channels.fetch(adminPanelChannelId);
+            const msg = await channel.messages.fetch(adminPanelMessageId);
+            await msg.edit({
+              embeds: [buildEmbedForClub(currentClubKey)],
+              components: buildAdminComponents()
+            });
+          } catch (err) {
+            console.error('⚠️ Failed to update admin panel after rename:', err);
+          }
+        }
+
+        return interaction.reply({
+          content: `Club renamed to **${newName}**.`,
+          ephemeral: true
+        });
+      }
     }
 
     // Dropdown (admin panel: change which club we're editing)
