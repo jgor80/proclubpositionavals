@@ -288,7 +288,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         const embed = new EmbedBuilder()
           .setTitle('Active Teams')
-          .setDescription(lines.join('\n'));
+          .setDescription(lines.join('
+'));
 
         return interaction.reply({
           embeds: [embed],
