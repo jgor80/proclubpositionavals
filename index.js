@@ -439,31 +439,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         const embed = new EmbedBuilder()
           .setTitle('Club Spot Summary')
-          .setDescription(lines.join('\n'));
+          .setDescription(lines.join('
+'));
 
         return interaction.reply({
           embeds: [embed],
           ephemeral: false
         });
-      }
-
-      // /spotboard – public read-only board with club dropdown
-      if (cmd === 'spotboard') {
-        // Default to whichever club the panel is currently editing, if it's enabled
-        let key = currentClubKey;
-        const currentClub = getClubByKey(key);
-        if (!currentClub || !currentClub.enabled) {
-          const firstEnabled = CLUBS.find((c) => c.enabled) || CLUBS[0];
-          key = firstEnabled ? firstEnabled.key : currentClubKey;
-        }
-
-        return interaction.reply({
-          embeds: [buildEmbedForClub(key)],
-          components: [buildViewerClubSelect(key)],
-          ephemeral: false
-        });
-      }
-    }
+      }}
 // /spotboard – public read-only board with club dropdown
       if (cmd === 'spotboard') {
         const firstEnabled = CLUBS.find((c) => c.enabled) || CLUBS[0];
@@ -1002,4 +985,3 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
 });
 
 client.login(token);
-
