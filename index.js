@@ -63,7 +63,7 @@ CLUBS.forEach(club => {
 });
 
 // Which club the admin panel is currently editing
-let currentClubKey = 'rs';
+let currentClubKey = 'club1';
 
 // Track the admin panel message so we can update it
 let adminPanelChannelId = null;
@@ -94,7 +94,10 @@ function buildEmbedForClub(clubKey) {
 
   return new EmbedBuilder()
     .setTitle('Div Spots')
-    .setDescription(`**Club:** ${club.name}\n\n` + lines.join('\n'))
+    .setDescription(`**Club:** ${club.name}
+
+` + lines.join('
+'))
     .setFooter({
       text:
         'Admins: use the panel to change spots/club. Players: click a spot while in VC to claim it.'
@@ -363,33 +366,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
           ephemeral: true
         });
       }
-        }
-
-        const clubBoard = boardState[currentClubKey];
-        POSITIONS.forEach((p) => {
-          clubBoard.spots[p].open = true;
-          clubBoard.spots[p].takenBy = null;
-        });
-
-        // Update admin panel if it exists
-        if (adminPanelChannelId && adminPanelMessageId) {
-          try {
-            const channel = await client.channels.fetch(adminPanelChannelId);
-            const msg = await channel.messages.fetch(adminPanelMessageId);
-            await msg.edit({
-              embeds: [buildEmbedForClub(currentClubKey)],
-              components: buildAdminComponents()
-            });
-          } catch (err) {
-            console.error('⚠️ Failed to update admin panel after /divall:', err);
-          }
-        }
-
-        return interaction.reply({
-          content: 'All spots set to 🟢 OPEN for the current club.',
-          ephemeral: true
-        });
-      }
 
       // Admin: assign a VC player to a position
       if (cmd === 'divassign') {
@@ -518,15 +494,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         const embed = new EmbedBuilder()
           .setTitle('Active Teams')
-          .setDescription(lines.join('\n'));
+          .setDescription(lines.join('
+'));
 
         return interaction.reply({
           embeds: [embed],
           ephemeral: false
         });
-      }
-
-
       }
     }
 
