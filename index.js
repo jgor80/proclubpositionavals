@@ -18,7 +18,9 @@ if (!token) {
 }
 
 // Add GuildVoiceStates so we can see who is in voice channels
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates] });
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates]
+});
 
 // Positions to track
 const POSITIONS = [
@@ -96,7 +98,10 @@ function buildEmbedForClub(clubKey) {
   return new EmbedBuilder()
     .setTitle('Div Spots')
     .setDescription(`**Club:** ${club.name}\n\n` + lines.join('\n'))
-    .setFooter({ text: 'Admins: use the panel to change spots/club. Players: click a spot while in VC to claim it.' });
+    .setFooter({
+      text:
+        'Admins: use the panel to change spots/club. Players: click a spot while in VC to claim it.'
+    });
 }
 
 // Build position buttons (for the CURRENT club in the panel)
@@ -186,7 +191,7 @@ client.once(Events.ClientReady, async (c) => {
     { name: 'rs3', description: 'Show RushSuperstars3 spots.' }
   ]);
 
-  console.log('✅ Commands registered: /div, /divpanel, /divall, /divactive, /rs, /rsa, /rs2, /rs3');
+  console.log('✅ Commands registered: /div, /divpanel, /divall, /divassign, /divactive, /rs, /rsa, /rs2, /rs3');
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -366,32 +371,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const club = getClubByKey(currentClubKey);
         return interaction.reply({
           content: `Assigned ${player} to **${position}** for **${club ? club.name : currentClubKey}**.`,
-          ephemeral: true
-        });
-      }
-
-        const clubBoard = boardState[currentClubKey];
-        POSITIONS.forEach((p) => {
-          clubBoard.spots[p].open = true;
-          clubBoard.spots[p].takenBy = null;
-        });
-
-        // Update admin panel if it exists
-        if (adminPanelChannelId && adminPanelMessageId) {
-          try {
-            const channel = await client.channels.fetch(adminPanelChannelId);
-            const msg = await channel.messages.fetch(adminPanelMessageId);
-            await msg.edit({
-              embeds: [buildEmbedForClub(currentClubKey)],
-              components: buildAdminComponents()
-            });
-          } catch (err) {
-            console.error('⚠️ Failed to update admin panel after /divall:', err);
-          }
-        }
-
-        return interaction.reply({
-          content: 'All spots set to 🟢 OPEN for the current club.',
           ephemeral: true
         });
       }
