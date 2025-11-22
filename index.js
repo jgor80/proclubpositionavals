@@ -387,9 +387,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // /spotclubs – show all clubs with at least one OPEN spot.
+      // /spotclubs – show summary of all clubs (open vs taken spots)
       if (cmd === 'spotclubs') {
-        const openTeams = [];
+        const teams = [];
 
         for (const club of CLUBS) {
           if (!club.enabled) continue;
@@ -397,35 +397,48 @@ client.on(Events.InteractionCreate, async (interaction) => {
           if (!board || !board.spots) continue;
 
           const entries = Object.entries(board.spots);
-          // open=true => OPEN
-          const openPositions = entries
-            .filter(([, slot]) => slot && slot.open === true)
-            .map(([pos]) => pos);
 
-          if (openPositions.length === 0) continue;
+          const openPositions = [];
+          const takenPositions = [];
 
-          openTeams.push({
+          for (const [pos, slot] of entries) {
+            if (!slot) continue;
+            if (slot.open) {
+              openPositions.push(pos);
+            } else {
+              takenPositions.push(pos);
+            }
+          }
+
+          teams.push({
             name: club.name,
             openCount: openPositions.length,
+            takenCount: takenPositions.length,
             totalCount: entries.length,
-            openPositions
+            openPositions,
+            takenPositions
           });
         }
 
-        if (openTeams.length === 0) {
+        if (teams.length === 0) {
           return interaction.reply({
-            content: 'All clubs are currently full. No open spots.',
+            content: 'No clubs configured yet. Use /spotsetup or the panel to add clubs.',
             ephemeral: false
           });
         }
 
-        const lines = openTeams.map((team) => {
-          const posList = team.openPositions.join(', ');
-          return `**${team.name}** – ${team.openCount}/${team.totalCount} spots OPEN (${posList})`;
+        const lines = teams.map((team) => {
+          const openList = team.openPositions.length
+            ? team.openPositions.join(', ')
+            : 'none';
+          const takenList = team.takenPositions.length
+            ? team.takenPositions.join(', ')
+            : 'none';
+          return `**${team.name}** – Open: ${team.openCount}/${team.totalCount} ( ${openList} ) | Taken: ${team.takenCount} ( ${takenList} )`;
         });
 
         const embed = new EmbedBuilder()
-          .setTitle('Clubs with Open Spots')
+          .setTitle('Club Spot Summary')
           .setDescription(lines.join('\n'));
 
         return interaction.reply({
@@ -435,6 +448,23 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
 
       // /spotboard – public read-only board with club dropdown
+      if (cmd === 'spotboard') {
+        // Default to whichever club the panel is currently editing, if it's enabled
+        let key = currentClubKey;
+        const currentClub = getClubByKey(key);
+        if (!currentClub || !currentClub.enabled) {
+          const firstEnabled = CLUBS.find((c) => c.enabled) || CLUBS[0];
+          key = firstEnabled ? firstEnabled.key : currentClubKey;
+        }
+
+        return interaction.reply({
+          embeds: [buildEmbedForClub(key)],
+          components: [buildViewerClubSelect(key)],
+          ephemeral: false
+        });
+      }
+    }
+// /spotboard – public read-only board with club dropdown
       if (cmd === 'spotboard') {
         const firstEnabled = CLUBS.find((c) => c.enabled) || CLUBS[0];
         const key = firstEnabled ? firstEnabled.key : currentClubKey;
@@ -972,3 +1002,4 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
 });
 
 client.login(token);
+
