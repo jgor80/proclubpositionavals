@@ -175,23 +175,6 @@ client.once(Events.ClientReady, async (c) => {
         }
       ]
     },
-    { name: 'divactive', description: 'Show all clubs with at least one taken spot.' },for the current club.',
-      options: [
-        {
-          type: 3, // STRING
-          name: 'position',
-          description: 'Position to assign',
-          required: true,
-          choices: POSITIONS.map(p => ({ name: p, value: p }))
-        },
-        {
-          type: 6, // USER
-          name: 'player',
-          description: 'Player to assign',
-          required: true
-        }
-      ]
-    },
     { name: 'divactive', description: 'Show all clubs with at least one taken spot.' },
 
     // Shortcodes for specific clubs
@@ -239,7 +222,28 @@ client.on(Events.InteractionCreate, async (interaction) => {
         ) {
           return interaction.reply({
             content: 'Only admins can create the control panel.',
-             // Admin: reset current club
+            ephemeral: true
+          });
+        }
+
+        const msg = await interaction.reply({
+          embeds: [buildEmbedForClub(currentClubKey)],
+          components: buildAdminComponents(),
+          fetchReply: true
+        });
+
+        adminPanelChannelId = interaction.channelId;
+        adminPanelMessageId = msg.id;
+
+        console.log('✅ Admin panel created at', {
+          channelId: adminPanelChannelId,
+          messageId: adminPanelMessageId
+        });
+
+        return;
+      }
+
+      // Admin: reset current club
       if (cmd === 'divall') {
         if (
           !interaction.memberPermissions?.has(
@@ -364,15 +368,33 @@ client.on(Events.InteractionCreate, async (interaction) => {
           content: `Assigned ${player} to **${position}** for **${club ? club.name : currentClubKey}**.`,
           ephemeral: true
         });
-      }.log('✅ Admin panel created at', {
-          channelId: adminPanelChannelId,
-          messageId: adminPanelMessageId
-        });
-
-        return;
       }
 
+        const clubBoard = boardState[currentClubKey];
+        POSITIONS.forEach((p) => {
+          clubBoard.spots[p].open = true;
+          clubBoard.spots[p].takenBy = null;
+        });
 
+        // Update admin panel if it exists
+        if (adminPanelChannelId && adminPanelMessageId) {
+          try {
+            const channel = await client.channels.fetch(adminPanelChannelId);
+            const msg = await channel.messages.fetch(adminPanelMessageId);
+            await msg.edit({
+              embeds: [buildEmbedForClub(currentClubKey)],
+              components: buildAdminComponents()
+            });
+          } catch (err) {
+            console.error('⚠️ Failed to update admin panel after /divall:', err);
+          }
+        }
+
+        return interaction.reply({
+          content: 'All spots set to 🟢 OPEN for the current club.',
+          ephemeral: true
+        });
+      }
 
       // /divactive – show all clubs with at least one taken spot.
       if (cmd === 'divactive') {
@@ -448,24 +470,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       // Everyone (including admins) must be in a voice channel to interact
       if (!inVoice) {
         return interaction.reply({
-          content: 'You must be **connected to a voice channel** in this server to claim or free a spo    // Buttons (admin panel + player signups)
-    if (interaction.isButton()) {
-      const [prefix, pos] = interaction.customId.split('_');
-      if (prefix !== 'pos') return;
-
-      const clubBoard = boardState[currentClubKey];
-      if (!clubBoard.spots.hasOwnProperty(pos)) return;
-
-      const slot = clubBoard.spots[pos];
-
-      const isAdmin = interaction.memberPermissions?.has(
-        PermissionsBitField.Flags.ManageGuild
-      );
-      const inVoice = interaction.member?.voice?.channelId;
-
-      // Everyone (including admins) must be in a voice channel to interact
-      if (!inVoice) {
-        return interaction.reply({
           content: 'You must be **connected to a voice channel** in this server to claim or free a spot.',
           ephemeral: true
         });
@@ -505,7 +509,35 @@ client.on(Events.InteractionCreate, async (interaction) => {
         embeds: [buildEmbedForClub(currentClubKey)],
         components: buildAdminComponents()
       });
-    }({
+    }
+
+    // Dropdown (admin panel: change which club we're editing)
+    if (interaction.isStringSelectMenu()) {
+      if (interaction.customId !== 'club_select') return;
+
+      if (
+        !interaction.memberPermissions?.has(
+          PermissionsBitField.Flags.ManageGuild
+        )
+      ) {
+        return interaction.reply({
+          content: 'Only admins can change the club.',
+          ephemeral: true
+        });
+      }
+
+      const selectedKey = interaction.values[0];
+      const club = getClubByKey(selectedKey);
+      if (!club) {
+        return interaction.reply({
+          content: 'Unknown club selected.',
+          ephemeral: true
+        });
+      }
+
+      currentClubKey = selectedKey;
+
+      return interaction.update({
         embeds: [buildEmbedForClub(currentClubKey)],
         components: buildAdminComponents()
       });
