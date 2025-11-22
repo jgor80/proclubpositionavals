@@ -94,10 +94,7 @@ function buildEmbedForClub(clubKey) {
 
   return new EmbedBuilder()
     .setTitle('Div Spots')
-    .setDescription(`**Club:** ${club.name}
-
-` + lines.join('
-'))
+    .setDescription(`**Club:** ${club.name}\n\n` + lines.join('\n'))
     .setFooter({
       text:
         'Admins: use the panel to change spots/club. Players: click a spot while in VC to claim it.'
@@ -494,8 +491,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         const embed = new EmbedBuilder()
           .setTitle('Active Teams')
-          .setDescription(lines.join('
-'));
+          .setDescription(lines.join('\n'));
 
         return interaction.reply({
           embeds: [embed],
