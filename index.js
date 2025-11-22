@@ -146,6 +146,7 @@ client.once(Events.ClientReady, async (c) => {
     { name: 'div', description: 'Show Div spots for the current club (read-only).' },
     { name: 'divpanel', description: 'Create the admin control panel for Div spots.' },
     { name: 'divall', description: 'Set all spots to OPEN for the current club.' },
+    { name: 'divactive', description: 'Show all clubs with at least one taken spot.' },
 
     // Shortcodes for specific clubs
     { name: 'rs',  description: 'Show Rush Superstars spots.' },
@@ -156,7 +157,7 @@ client.once(Events.ClientReady, async (c) => {
     { name: 'rs3', description: 'Show RushSuperstars3 spots.' }
   ]);
 
-  console.log('✅ Commands registered: /div, /divpanel, /divall, /rs, /rsa, /rs2, /rs3');
+  console.log('✅ Commands registered: /div, /divpanel, /divall, /divactive, /rs, /rsa, /rs2, /rs3');
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -249,7 +250,53 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Shortcodes for specific clubs: /rs, /rs1, /rs2, /rs3, /rsa
+      // /divactive – show all clubs with at least one taken spot.
+      if (cmd === 'divactive') {
+        const activeTeams = [];
+
+        for (const club of CLUBS) {
+          const board = boardState[club.key];
+          if (!board || !board.spots) continue;
+
+          const entries = Object.entries(board.spots);
+          // true = OPEN, false = TAKEN
+          const takenPositions = entries
+            .filter(([, isOpen]) => isOpen === false)
+            .map(([pos]) => pos);
+
+          if (takenPositions.length === 0) continue;
+
+          activeTeams.push({
+            name: club.name,
+            takenCount: takenPositions.length,
+            totalCount: entries.length,
+            takenPositions
+          });
+        }
+
+        if (activeTeams.length === 0) {
+          return interaction.reply({
+            content: 'No active teams right now. All spots are open.',
+            ephemeral: false
+          });
+        }
+
+        const lines = activeTeams.map(team => {
+          const posList = team.takenPositions.join(', ');
+          return '**' + team.name + '** – ' + team.takenCount + '/' + team.totalCount + ' spots taken (' + posList + ')';
+        });
+
+        const embed = new EmbedBuilder()
+          .setTitle('Active Teams')
+          .setDescription(lines.join('\n'));
+
+        return interaction.reply({
+          embeds: [embed],
+          ephemeral: false
+        });
+      }
+
+      // Shortcodes for specific clubs: /rs, /rs2, /rs3, /rsa
       const shortcodeClub = getClubByCommand(cmd);
       if (shortcodeClub) {
         return interaction.reply({
@@ -329,3 +376,4 @@ client.on(Events.InteractionCreate, async (interaction) => {
 });
 
 client.login(token);
+
