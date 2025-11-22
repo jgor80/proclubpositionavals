@@ -1,7 +1,12 @@
 {
- let token = process.env.BOT_TOKEN;
-if (!token) {
-  // fallback for local dev
-  token = require('./config.json').token;
-}
+  "name": "rush-draft-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3"
+  }
 }
