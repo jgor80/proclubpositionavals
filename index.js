@@ -156,6 +156,24 @@ function buildClubSelect() {
   return row;
 }
 
+// Build viewer dropdown (for public read-only board)
+function buildViewerClubSelect(selectedKey) {
+  const enabledClubs = CLUBS.filter((club) => club.enabled);
+  const select = new StringSelectMenuBuilder()
+    .setCustomId('viewer_club_select')
+    .setPlaceholder('Select club')
+    .addOptions(
+      enabledClubs.map((club) => ({
+        label: club.name,
+        value: club.key,
+        default: club.key === selectedKey
+      }))
+    );
+
+  const row = new ActionRowBuilder().addComponents(select);
+  return row;
+}
+
 // Components for the admin panel (dropdown + controls + position buttons)
 function buildAdminComponents() {
   const clubRow = buildClubSelect();
@@ -212,11 +230,12 @@ client.once(Events.ClientReady, async (c) => {
         }
       ]
     },
-    { name: 'spotclubs', description: 'Show all clubs with at least one OPEN spot.' }
+    { name: 'spotclubs', description: 'Show all clubs with at least one OPEN spot.' },
+    { name: 'spotboard', description: 'Show a read-only board with club dropdown.' }
   ]);
 
   console.log(
-    '✅ Commands registered: /spots, /spotpanel, /spotreset, /spotsetup, /spotclubs'
+    '✅ Commands registered: /spots, /spotpanel, /spotreset, /spotsetup, /spotclubs, /spotboard'
   );
 });
 
@@ -411,6 +430,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         return interaction.reply({
           embeds: [embed],
+          ephemeral: false
+        });
+      }
+
+      // /spotboard – public read-only board with club dropdown
+      if (cmd === 'spotboard') {
+        const firstEnabled = CLUBS.find((c) => c.enabled) || CLUBS[0];
+        const key = firstEnabled ? firstEnabled.key : currentClubKey;
+
+        return interaction.reply({
+          embeds: [buildEmbedForClub(key)],
+          components: [buildViewerClubSelect(key)],
           ephemeral: false
         });
       }
@@ -732,9 +763,26 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    // Dropdowns (club select and assignment selects)
+    // Dropdowns (club select, public viewer select, and assignment selects)
     if (interaction.isStringSelectMenu()) {
       const id = interaction.customId;
+
+      // Public viewer club select
+      if (id === 'viewer_club_select') {
+        const selectedKey = interaction.values[0];
+        const club = getClubByKey(selectedKey);
+        if (!club || !club.enabled) {
+          return interaction.reply({
+            content: 'Unknown or disabled club selected.',
+            ephemeral: true
+          });
+        }
+
+        return interaction.update({
+          embeds: [buildEmbedForClub(selectedKey)],
+          components: [buildViewerClubSelect(selectedKey)]
+        });
+      }
 
       // Change which club we're editing in the panel
       if (id === 'club_select') {
