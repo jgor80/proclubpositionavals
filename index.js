@@ -40,16 +40,69 @@ const POSITIONS = [
   'GK'
 ];
 
-// Default club slots; names are editable from the panel
-let CLUBS = [
+// Default club slots per guild; names are editable from the panel
+const DEFAULT_CLUBS = [
   { key: 'club1', name: 'Club 1', enabled: true },
   { key: 'club2', name: 'Club 2', enabled: false },
   { key: 'club3', name: 'Club 3', enabled: false },
   { key: 'club4', name: 'Club 4', enabled: false }
 ];
 
-function getClubByKey(key) {
-  return CLUBS.find((c) => c.key === key);
+// Slash commands (reused for every guild)
+const COMMANDS = [
+  {
+    name: 'spotpanel',
+    description: 'Create the control panel for club spots.'
+  },
+  {
+    name: 'spots',
+    description: 'Show a read-only board with club dropdown.'
+  }
+];
+
+// ---------- PER-GUILD STATE HELPERS ----------
+
+function cloneDefaultClubs() {
+  return DEFAULT_CLUBS.map((c) => ({ ...c }));
+}
+
+function createEmptyBoardState(clubs) {
+  const state = {};
+  clubs.forEach((club) => {
+    state[club.key] = {
+      spots: POSITIONS.reduce((acc, p) => {
+        acc[p] = { open: true, takenBy: null };
+        return acc;
+      }, {})
+    };
+  });
+  return state;
+}
+
+// guildId -> { clubs, boardState, currentClubKey, adminPanelChannelId, adminPanelMessageId }
+const guildStates = new Map();
+
+function getGuildState(guildId) {
+  if (!guildId) return null;
+
+  let state = guildStates.get(guildId);
+  if (!state) {
+    const clubs = cloneDefaultClubs();
+    const boardState = createEmptyBoardState(clubs);
+    state = {
+      clubs,
+      boardState,
+      currentClubKey: 'club1',
+      adminPanelChannelId: null,
+      adminPanelMessageId: null
+    };
+    guildStates.set(guildId, state);
+  }
+  return state;
+}
+
+function getClubByKey(clubs, key) {
+  return clubs.find((c) => c.key === key);
 }
 
 // Admins or roles with "captain" in the name
@@ -62,26 +115,14 @@ function isManager(member) {
   return false;
 }
 
-// clubKey -> { spots: { [pos]: { open: boolean, takenBy: string | null } } }
-const boardState = {};
-CLUBS.forEach((club) => {
-  boardState[club.key] = {
-    spots: POSITIONS.reduce((acc, p) => {
-      acc[p] = { open: true, takenBy: null };
-      return acc;
-    }, {})
-  };
-});
+// ---------- UI BUILDERS (per guild) ----------
 
-// Which club the admin panel is currently editing
-let currentClubKey = 'club1';
+function buildEmbedForClub(guildId, clubKey) {
+  const state = getGuildState(guildId);
+  if (!state) throw new Error('No state for guild');
 
-// Track admin panel message so we can update it
-let adminPanelChannelId = null;
-let adminPanelMessageId = null;
-
-function buildEmbedForClub(clubKey) {
-  const club = getClubByKey(clubKey);
+  const { clubs, boardState } = state;
+  const club = getClubByKey(clubs, clubKey);
   if (!club) throw new Error(`Unknown club key: ${clubKey}`);
 
   const clubBoard = boardState[clubKey];
@@ -97,15 +138,21 @@ function buildEmbedForClub(clubKey) {
 
   return new EmbedBuilder()
     .setTitle('Club Spots')
-    .setDescription(`**Club:** ${club.name}\n\n` + lines.join('\n'))
+    .setDescription(`**Club:** ${club.name}
+
+` + lines.join('
+'))
     .setFooter({
       text:
         'Players: click a spot to claim. Admins/Captains: use the panel to manage spots & clubs.'
     });
 }
 
-function buildButtons() {
+function buildButtons(guildId) {
+  const state = getGuildState(guildId);
+  const { boardState, currentClubKey } = state;
   const clubBoard = boardState[currentClubKey];
+
   const rows = [];
   let currentRow = new ActionRowBuilder();
 
@@ -127,8 +174,11 @@ function buildButtons() {
   return rows;
 }
 
-function buildClubSelect() {
-  const enabledClubs = CLUBS.filter((club) => club.enabled);
+function buildClubSelect(guildId) {
+  const state = getGuildState(guildId);
+  const { clubs, currentClubKey } = state;
+
+  const enabledClubs = clubs.filter((club) => club.enabled);
   const select = new StringSelectMenuBuilder()
     .setCustomId('club_select')
     .setPlaceholder('Select club')
@@ -143,8 +193,11 @@ function buildClubSelect() {
   return new ActionRowBuilder().addComponents(select);
 }
 
-function buildViewerClubSelect(selectedKey) {
-  const enabledClubs = CLUBS.filter((club) => club.enabled);
+function buildViewerClubSelect(guildId, selectedKey) {
+  const state = getGuildState(guildId);
+  const { clubs } = state;
+
+  const enabledClubs = clubs.filter((club) => club.enabled);
   const select = new StringSelectMenuBuilder()
     .setCustomId('viewer_club_select')
     .setPlaceholder('Select club')
@@ -159,8 +212,8 @@ function buildViewerClubSelect(selectedKey) {
   return new ActionRowBuilder().addComponents(select);
 }
 
-function buildAdminComponents() {
-  const clubRow = buildClubSelect();
+function buildAdminComponents(guildId) {
+  const clubRow = buildClubSelect(guildId);
 
   const controlRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -185,32 +238,58 @@ function buildAdminComponents() {
       .setStyle(ButtonStyle.Secondary)
   );
 
-  const buttonRows = buildButtons();
+  const buttonRows = buildButtons(guildId);
   return [clubRow, controlRow, ...buttonRows];
 }
+
+// ---------- READY & COMMAND REG ----------
 
 client.once(Events.ClientReady, async (c) => {
   console.log(`✅ Logged in as ${c.user.tag}`);
   console.log(`✅ App ID: ${c.application.id}`);
 
-  const commands = [
-    {
-      name: 'spotpanel',
-      description: 'Create the control panel for club spots.'
-    },
-    {
-      name: 'spots',
-      description: 'Show a read-only board with club dropdown.'
-    }
-  ];
+  try {
+    // Global commands (will appear in all guilds, with a bit of propagation delay)
+    await c.application.commands.set(COMMANDS);
+    console.log('✅ Global commands registered for all servers');
 
-  // GLOBAL registration – works on every server the bot is in
-  await c.application.commands.set(commands);
-  console.log('✅ Global commands registered for all servers');
+    // Per-guild commands for faster availability + future-proof
+    for (const guild of c.guilds.cache.values()) {
+      try {
+        await c.application.commands.set(COMMANDS, guild.id);
+        console.log(`✅ Commands registered in guild ${guild.name} (${guild.id})`);
+      } catch (err) {
+        console.error('⚠️ Failed to register commands in guild', guild.id, err);
+      }
+    }
+  } catch (err) {
+    console.error('❌ Failed to register commands:', err);
+  }
 });
+
+// When the bot joins a new server later, register there too
+client.on(Events.GuildCreate, async (guild) => {
+  try {
+    if (!client.application?.commands) return;
+    await client.application.commands.set(COMMANDS, guild.id);
+    console.log(`✅ Commands registered in newly joined guild ${guild.name} (${guild.id})`);
+  } catch (err) {
+    console.error('⚠️ Failed to register commands in new guild', guild.id, err);
+  }
+});
+
+// ---------- INTERACTIONS ----------
 
 client.on(Events.InteractionCreate, async (interaction) => {
   try {
+    const guildId = interaction.guildId;
+    if (!guildId) return; // ignore DMs
+
+    const state = getGuildState(guildId);
+    if (!state) return;
+
+    const { clubs, boardState } = state;
+
     if (interaction.isChatInputCommand()) {
       const cmd = interaction.commandName;
 
@@ -223,33 +302,39 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
 
         const msg = await interaction.reply({
-          embeds: [buildEmbedForClub(currentClubKey)],
-          components: buildAdminComponents(),
+          embeds: [buildEmbedForClub(guildId, state.currentClubKey)],
+          components: buildAdminComponents(guildId),
           fetchReply: true
         });
 
-        adminPanelChannelId = interaction.channelId;
-        adminPanelMessageId = msg.id;
+        state.adminPanelChannelId = interaction.channelId;
+        state.adminPanelMessageId = msg.id;
         return;
       }
 
       if (cmd === 'spots') {
-        let key = currentClubKey;
-        const currentClub = getClubByKey(key);
+        let key = state.currentClubKey;
+        const currentClub = getClubByKey(clubs, key);
         if (!currentClub || !currentClub.enabled) {
-          const firstEnabled = CLUBS.find((c) => c.enabled) || CLUBS[0];
-          key = firstEnabled ? firstEnabled.key : currentClubKey;
+          const firstEnabled = clubs.find((c) => c.enabled) || clubs[0];
+          key = firstEnabled ? firstEnabled.key : state.currentClubKey;
         }
 
         return interaction.reply({
-          embeds: [buildEmbedForClub(key)],
-          components: [buildViewerClubSelect(key)],
+          embeds: [buildEmbedForClub(guildId, key)],
+          components: [buildViewerClubSelect(guildId, key)],
           ephemeral: false
         });
       }
     }
 
     if (interaction.isButton()) {
+      const guildIdBtn = interaction.guildId;
+      const stateBtn = getGuildState(guildIdBtn);
+      if (!stateBtn) return;
+
+      const { clubs: clubsBtn, boardState: boardStateBtn } = stateBtn;
+
       if (interaction.customId === 'rename_club') {
         if (!isManager(interaction.member)) {
           return interaction.reply({
@@ -258,7 +343,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        const currentClub = getClubByKey(currentClubKey);
+        const currentClub = getClubByKey(clubsBtn, stateBtn.currentClubKey);
         if (!currentClub) {
           return interaction.reply({
             content: 'Current club not found.',
@@ -292,7 +377,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        const disabledClub = CLUBS.find((c) => !c.enabled);
+        const disabledClub = clubsBtn.find((c) => !c.enabled);
         if (!disabledClub) {
           return interaction.reply({
             content: 'All available club slots are already in use (max 4).',
@@ -302,23 +387,23 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         disabledClub.enabled = true;
 
-        if (!boardState[disabledClub.key]) {
-          boardState[disabledClub.key] = { spots: {} };
+        if (!boardStateBtn[disabledClub.key]) {
+          boardStateBtn[disabledClub.key] = { spots: {} };
         }
-        boardState[disabledClub.key].spots = POSITIONS.reduce((acc, p) => {
+        boardStateBtn[disabledClub.key].spots = POSITIONS.reduce((acc, p) => {
           acc[p] = { open: true, takenBy: null };
           return acc;
         }, {});
 
-        currentClubKey = disabledClub.key;
+        stateBtn.currentClubKey = disabledClub.key;
 
-        if (adminPanelChannelId && adminPanelMessageId) {
+        if (stateBtn.adminPanelChannelId && stateBtn.adminPanelMessageId) {
           try {
-            const channel = await client.channels.fetch(adminPanelChannelId);
-            const msg = await channel.messages.fetch(adminPanelMessageId);
+            const channel = await client.channels.fetch(stateBtn.adminPanelChannelId);
+            const msg = await channel.messages.fetch(stateBtn.adminPanelMessageId);
             await msg.edit({
-              embeds: [buildEmbedForClub(currentClubKey)],
-              components: buildAdminComponents()
+              embeds: [buildEmbedForClub(guildIdBtn, stateBtn.currentClubKey)],
+              components: buildAdminComponents(guildIdBtn)
             });
           } catch (err) {
             console.error('⚠️ Failed to update admin panel after add_club:', err);
@@ -339,7 +424,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        const currentClub = getClubByKey(currentClubKey);
+        const currentClub = getClubByKey(clubsBtn, stateBtn.currentClubKey);
         if (!currentClub || !currentClub.enabled) {
           return interaction.reply({
             content: 'Current club cannot be removed.',
@@ -347,7 +432,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        const enabledCount = CLUBS.filter((c) => c.enabled).length;
+        const enabledCount = clubsBtn.filter((c) => c.enabled).length;
         if (enabledCount <= 1) {
           return interaction.reply({
             content: 'You must keep at least one club enabled.',
@@ -355,7 +440,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        const clubBoard = boardState[currentClubKey];
+        const clubBoard = boardStateBtn[stateBtn.currentClubKey];
         if (clubBoard && clubBoard.spots) {
           const hasTaken = POSITIONS.some((p) => {
             const s = clubBoard.spots[p];
@@ -382,16 +467,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        const firstEnabled = CLUBS.find((c) => c.enabled);
-        if (firstEnabled) currentClubKey = firstEnabled.key;
+        const firstEnabled = clubsBtn.find((c) => c.enabled);
+        if (firstEnabled) stateBtn.currentClubKey = firstEnabled.key;
 
-        if (adminPanelChannelId && adminPanelMessageId) {
+        if (stateBtn.adminPanelChannelId && stateBtn.adminPanelMessageId) {
           try {
-            const channel = await client.channels.fetch(adminPanelChannelId);
-            const msg = await channel.messages.fetch(adminPanelMessageId);
+            const channel = await client.channels.fetch(stateBtn.adminPanelChannelId);
+            const msg = await channel.messages.fetch(stateBtn.adminPanelMessageId);
             await msg.edit({
-              embeds: [buildEmbedForClub(currentClubKey)],
-              components: buildAdminComponents()
+              embeds: [buildEmbedForClub(guildIdBtn, stateBtn.currentClubKey)],
+              components: buildAdminComponents(guildIdBtn)
             });
           } catch (err) {
             console.error('⚠️ Failed to update admin panel after remove_club:', err);
@@ -412,19 +497,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        const clubBoard = boardState[currentClubKey];
+        const clubBoard = boardStateBtn[stateBtn.currentClubKey];
         POSITIONS.forEach((p) => {
           clubBoard.spots[p].open = true;
           clubBoard.spots[p].takenBy = null;
         });
 
-        if (adminPanelChannelId && adminPanelMessageId) {
+        if (stateBtn.adminPanelChannelId && stateBtn.adminPanelMessageId) {
           try {
-            const channel = await client.channels.fetch(adminPanelChannelId);
-            const msg = await channel.messages.fetch(adminPanelMessageId);
+            const channel = await client.channels.fetch(stateBtn.adminPanelChannelId);
+            const msg = await channel.messages.fetch(stateBtn.adminPanelMessageId);
             await msg.edit({
-              embeds: [buildEmbedForClub(currentClubKey)],
-              components: buildAdminComponents()
+              embeds: [buildEmbedForClub(guildIdBtn, stateBtn.currentClubKey)],
+              components: buildAdminComponents(guildIdBtn)
             });
           } catch (err) {
             console.error('⚠️ Failed to update admin panel after reset_spots:', err);
@@ -467,301 +552,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }));
 
         const select = new StringSelectMenuBuilder()
-          .setCustomId(`assign_player_pick_${currentClubKey}`)
+          .setCustomId(`assign_player_pick_${stateBtn.currentClubKey}`)
           .setPlaceholder('Pick a player')
           .addOptions(options.slice(0, 25));
 
         const row = new ActionRowBuilder().addComponents(select);
-        const club = getClubByKey(currentClubKey);
+        const club = getClubByKey(clubsBtn, stateBtn.currentClubKey);
 
         return interaction.reply({
-          content: `Pick a player to assign in **${club ? club.name : currentClubKey}**:`,
+          content: `Pick a player to assign in **${club ? club.name : stateBtn.currentClubKey}**:`,
           components: [row],
           ephemeral: true
         });
       }
 
       if (interaction.customId.startsWith('pos_')) {
-        const pos = interaction.customId.substring('pos_'.length);
-        const clubBoard = boardState[currentClubKey];
-        if (!clubBoard || !clubBoard.spots.hasOwnProperty(pos)) return;
-
-        const inVoice = interaction.member?.voice?.channelId;
-        if (!inVoice) {
-          return interaction.reply({
-            content: 'You must be connected to a voice channel to claim or free a spot.',
-            ephemeral: true
-          });
-        }
-
-        const userId = interaction.user.id;
-        const slot = clubBoard.spots[pos];
-
-        if (slot.open) {
-          for (const p of POSITIONS) {
-            const s = clubBoard.spots[p];
-            if (s && s.takenBy === userId) {
-              s.open = true;
-              s.takenBy = null;
-            }
-          }
-          slot.open = false;
-          slot.takenBy = userId;
-        } else {
-          if (slot.takenBy === userId) {
-            slot.open = true;
-            slot.takenBy = null;
-          } else {
-            return interaction.reply({
-              content:
-                'This spot is already taken by someone else. Ask a captain if you need to be moved.',
-              ephemeral: true
-            });
-          }
-        }
-
-        return interaction.update({
-          embeds: [buildEmbedForClub(currentClubKey)],
-          components: buildAdminComponents()
-        });
-      }
-    }
-
-    if (interaction.isModalSubmit()) {
-      if (interaction.customId === 'rename_club_modal') {
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content: 'Only admins or captains can rename clubs.',
-            ephemeral: true
-          });
-        }
-
-        const newName = interaction.fields.getTextInputValue('club_name').trim();
-        if (!newName) {
-          return interaction.reply({
-            content: 'Club name cannot be empty.',
-            ephemeral: true
-          });
-        }
-
-        const currentClub = getClubByKey(currentClubKey);
-        if (!currentClub) {
-          return interaction.reply({
-            content: 'Current club not found.',
-            ephemeral: true
-          });
-        }
-
-        currentClub.name = newName;
-
-        if (adminPanelChannelId && adminPanelMessageId) {
-          try {
-            const channel = await client.channels.fetch(adminPanelChannelId);
-            const msg = await channel.messages.fetch(adminPanelMessageId);
-            await msg.edit({
-              embeds: [buildEmbedForClub(currentClubKey)],
-              components: buildAdminComponents()
-            });
-          } catch (err) {
-            console.error('⚠️ Failed to update admin panel after rename:', err);
-          }
-        }
-
-        return interaction.reply({
-          content: `Club renamed to **${newName}**.`,
-          ephemeral: true
-        });
-      }
-    }
-
-    if (interaction.isStringSelectMenu()) {
-      const id = interaction.customId;
-
-      if (id === 'viewer_club_select') {
-        const selectedKey = interaction.values[0];
-        const club = getClubByKey(selectedKey);
-        if (!club || !club.enabled) {
-          return interaction.reply({
-            content: 'Unknown or disabled club selected.',
-            ephemeral: true
-          });
-        }
-
-        return interaction.update({
-          embeds: [buildEmbedForClub(selectedKey)],
-          components: [buildViewerClubSelect(selectedKey)]
-        });
-      }
-
-      if (id === 'club_select') {
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content: 'Only admins or captains can change the club.',
-            ephemeral: true
-          });
-        }
-
-        const selectedKey = interaction.values[0];
-        const club = getClubByKey(selectedKey);
-        if (!club) {
-          return interaction.reply({
-            content: 'Unknown club selected.',
-            ephemeral: true
-          });
-        }
-
-        currentClubKey = selectedKey;
-
-        return interaction.update({
-          embeds: [buildEmbedForClub(currentClubKey)],
-          components: buildAdminComponents()
-        });
-      }
-
-      if (id.startsWith('assign_player_pick_')) {
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content: 'Only admins or captains can assign players.',
-            ephemeral: true
-          });
-        }
-
-        const clubKey = id.substring('assign_player_pick_'.length);
-        const club = getClubByKey(clubKey);
-        if (!club) {
-          return interaction.reply({
-            content: 'Unknown club in assignment request.',
-            ephemeral: true
-          });
-        }
-
-        const userId = interaction.values[0];
-
-        const posSelect = new StringSelectMenuBuilder()
-          .setCustomId(`assign_player_pos_${clubKey}_${userId}`)
-          .setPlaceholder('Pick a spot')
-          .addOptions(POSITIONS.map((p) => ({ label: p, value: p })));
-
-        const row = new ActionRowBuilder().addComponents(posSelect);
-
-        return interaction.update({
-          content: `Now pick a spot for <@${userId}> in **${club.name}**:`,
-          components: [row]
-        });
-      }
-
-      if (id.startsWith('assign_player_pos_')) {
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content: 'Only admins or captains can assign players.',
-            ephemeral: true
-          });
-        }
-
-        const parts = id.split('_');
-        const clubKey = parts[3];
-        const userId = parts[4];
-        const pos = interaction.values[0];
-
-        const club = getClubByKey(clubKey);
-        if (!club) {
-          return interaction.reply({
-            content: 'Unknown club in assignment request.',
-            ephemeral: true
-          });
-        }
-
-        const clubBoard = boardState[clubKey];
-        if (!clubBoard || !clubBoard.spots[pos]) {
-          return interaction.reply({
-            content: 'Unknown position for this club.',
-            ephemeral: true
-          });
-        }
-
-        for (const p of POSITIONS) {
-          const s = clubBoard.spots[p];
-          if (s && s.takenBy === userId) {
-            s.open = true;
-            s.takenBy = null;
-          }
-        }
-
-        const slot = clubBoard.spots[pos];
-        slot.open = false;
-        slot.takenBy = userId;
-
-        if (clubKey === currentClubKey && adminPanelChannelId && adminPanelMessageId) {
-          try {
-            const channel = await client.channels.fetch(adminPanelChannelId);
-            const msg = await channel.messages.fetch(adminPanelMessageId);
-            await msg.edit({
-              embeds: [buildEmbedForClub(currentClubKey)],
-              components: buildAdminComponents()
-            });
-          } catch (err) {
-            console.error('⚠️ Failed to update admin panel after assignment:', err);
-          }
-        }
-
-        return interaction.update({
-          content: `Assigned <@${userId}> to **${pos}** in **${club.name}**.`,
-          components: []
-        });
-      }
-    }
-  } catch (err) {
-    console.error('❌ Error handling interaction:', err);
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: 'Error.', ephemeral: true });
-    }
-  }
-});
-
-client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
-  try {
-    if (!oldState.guild || !oldState.channelId) return;
-    if (newState.channelId) return;
-
-    const userId = oldState.id;
-    const touchedClubKeys = new Set();
-
-    for (const clubKey of Object.keys(boardState)) {
-      const clubBoard = boardState[clubKey];
-      if (!clubBoard || !clubBoard.spots) continue;
-
-      let changed = false;
-      for (const pos of POSITIONS) {
-        const slot = clubBoard.spots[pos];
-        if (slot && slot.takenBy === userId) {
-          slot.open = true;
-          slot.takenBy = null;
-          changed = true;
-        }
-      }
-
-      if (changed) touchedClubKeys.add(clubKey);
-    }
-
-    if (
-      touchedClubKeys.has(currentClubKey) &&
-      adminPanelChannelId &&
-      adminPanelMessageId
-    ) {
-      try {
-        const channel = await client.channels.fetch(adminPanelChannelId);
-        const msg = await channel.messages.fetch(adminPanelMessageId);
-        await msg.edit({
-          embeds: [buildEmbedForClub(currentClubKey)],
-          components: buildAdminComponents()
-        });
-      } catch (err) {
-        console.error('⚠️ Failed to update admin panel after voice leave:', err);
-      }
-    }
-  } catch (err) {
-    console.error('❌ Error in VoiceStateUpdate handler:', err);
-  }
-});
-
-client.login(token);
+        const pos = interaction.customId.substring('
