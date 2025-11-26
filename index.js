@@ -27,7 +27,7 @@ const client = new Client({
 
 /**
  * Dynamic formations: each club can pick one, and we build slots from this.
- * Each array is 11 positions in order.
+ * Each array is 11 positions in order (GK first, strikers last).
  */
 const FORMATION_POSITIONS = {
   // 3-at-the-back
@@ -425,14 +425,17 @@ function buildEmbedForClub(guildId, clubKey) {
   const clubBoard = boardState[clubKey];
   if (!clubBoard) throw new Error(`No board state for club key: ${clubKey}`);
 
-  const lines = clubBoard.slots.map((slot) => {
+  // Show from top of pitch (strikers) down to GK
+  const lines = [];
+  for (let i = clubBoard.slots.length - 1; i >= 0; i--) {
+    const slot = clubBoard.slots[i];
     const emoji = slot.open ? '🟢' : '🔴';
     let text;
     if (slot.open) text = 'OPEN';
     else if (slot.takenBy) text = `TAKEN by <@${slot.takenBy}>`;
     else text = 'TAKEN';
-    return `**${slot.label}** – ${emoji} ${text}`;
-  });
+    lines.push(`**${slot.label}** – ${emoji} ${text}`);
+  }
 
   const embed = new EmbedBuilder()
     .setTitle(`Club Spots – ${clubBoard.formation}`)
@@ -454,6 +457,7 @@ function buildEmbedForClub(guildId, clubKey) {
 }
 
 // Buttons for a specific club, based on its current formation slots
+// Also ordered from top of pitch (attack) down to GK
 function buildButtons(guildId, clubKey) {
   const state = getGuildState(guildId);
   const { boardState } = state;
@@ -462,10 +466,12 @@ function buildButtons(guildId, clubKey) {
   const rows = [];
   let currentRow = new ActionRowBuilder();
 
-  clubBoard.slots.forEach((slot, index) => {
+  for (let i = clubBoard.slots.length - 1; i >= 0; i--) {
+    const slot = clubBoard.slots[i];
+
     const button = new ButtonBuilder()
       // customId: pos_<clubKey>_<index>
-      .setCustomId(`pos_${clubKey}_${index}`)
+      .setCustomId(`pos_${clubKey}_${i}`)
       .setLabel(slot.label)
       .setStyle(slot.open ? ButtonStyle.Success : ButtonStyle.Danger);
 
@@ -475,7 +481,7 @@ function buildButtons(guildId, clubKey) {
       rows.push(currentRow);
       currentRow = new ActionRowBuilder();
     }
-  });
+  }
 
   if (currentRow.components.length > 0) {
     rows.push(currentRow);
@@ -1085,7 +1091,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Formation menu button (manager-only, opens ephemeral select of all formations)
+      // Formation menu button (manager-only, opens ephemeral select(s) of all formations)
       if (id.startsWith('formation_menu_')) {
         const clubKey = id.substring('formation_menu_'.length);
 
@@ -1102,23 +1108,40 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         const formationNames = Object.keys(FORMATION_POSITIONS);
 
-        const select = new StringSelectMenuBuilder()
-          .setCustomId(`formation_select_${clubKey}`)
-          .setPlaceholder('Select a formation')
-          .addOptions(
-            formationNames.map((name) => ({
-              label: name,
-              value: name,
-              default: name === currentFormation
-            })).slice(0, 25) // Discord limit per select; you can trim if needed
-          );
+        // Discord: max 25 options per select, max 5 rows; we have 29 formations
+        const rows = [];
+        let batch = [];
+        let pageIndex = 1;
 
-        const row = new ActionRowBuilder().addComponents(select);
+        const pushBatch = () => {
+          if (batch.length === 0) return;
+          const select = new StringSelectMenuBuilder()
+            .setCustomId(`formation_select_${clubKey}_${pageIndex}`)
+            .setPlaceholder(
+              pageIndex === 1 ? 'Select a formation' : 'More formations'
+            )
+            .addOptions(batch);
+          rows.push(new ActionRowBuilder().addComponents(select));
+          batch = [];
+          pageIndex++;
+        };
+
+        for (const name of formationNames) {
+          batch.push({
+            label: name,
+            value: name,
+            default: name === currentFormation
+          });
+          if (batch.length === 25) {
+            pushBatch();
+          }
+        }
+        if (batch.length > 0) pushBatch();
 
         return interaction.reply({
           content:
             'Choose a formation. Changing formation will reset all spots to OPEN for this club.',
-          components: [row],
+          components: rows,
           ephemeral: true
         });
       }
@@ -1344,18 +1367,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
 
         const seenLabelIndex = {};
-        const options = clubBoard.slots.map((slot, idx) => {
+        const options = [];
+        for (let idx = clubBoard.slots.length - 1; idx >= 0; idx--) {
+          const slot = clubBoard.slots[idx];
           const total = labelCounts[slot.label];
           let label = slot.label;
           if (total > 1) {
             seenLabelIndex[slot.label] = (seenLabelIndex[slot.label] || 0) + 1;
             label = `${slot.label} (${seenLabelIndex[slot.label]})`;
           }
-          return {
+          options.push({
             label,
             value: String(idx)
-          };
-        });
+          });
+        }
 
         const posSelect = new StringSelectMenuBuilder()
           .setCustomId(`assign_player_pos_${clubKey}_${userId}`)
@@ -1521,18 +1546,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
 
         const seenLabelIndex = {};
-        const options = clubBoard.slots.map((slot, idx) => {
+        const options = [];
+        for (let idx = clubBoard.slots.length - 1; idx >= 0; idx--) {
+          const slot = clubBoard.slots[idx];
           const total = labelCounts[slot.label];
           let label = slot.label;
           if (total > 1) {
             seenLabelIndex[slot.label] = (seenLabelIndex[slot.label] || 0) + 1;
             label = `${slot.label} (${seenLabelIndex[slot.label]})`;
           }
-          return {
+          options.push({
             label,
             value: String(idx)
-          };
-        });
+          });
+        }
 
         options.push({
           label: 'Remove from all spots',
@@ -1615,9 +1642,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Formation selection (manager-only)
+      // Formation selection (manager-only) – supports multi-page selects
       if (id.startsWith('formation_select_')) {
-        const clubKey = id.substring('formation_select_'.length);
+        const parts = id.split('_'); // ['formation','select',clubKey,'pageIndex']
+        const clubKey = parts[2];
         const formationName = interaction.values[0];
         return setClubFormation(interaction, guildIdSel, clubKey, formationName);
       }
