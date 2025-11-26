@@ -10,7 +10,8 @@ const {
   StringSelectMenuBuilder,
   ModalBuilder,
   TextInputBuilder,
-  TextInputStyle
+  TextInputStyle,
+  MessageFlags
 } = require("discord.js");
 
 // Get token from environment variable only
@@ -258,214 +259,212 @@ const FORMATION_POSITIONS = {
 
 // Row layout for each formation: arrays of slot indices (into FORMATION_POSITIONS)
 // From back to front: [GK row], [defence row], [mid rows...], [attack rows...]
-// We render them front-to-back in the embed, so attackers appear on top, GK at bottom.
 const FORMATION_VISUAL_ROWS = {
   "3-1-4-2": [
     [0],
-    [1, 2, 3],
+    [1,2,3],
     [4],
-    [5, 6, 7, 8],
-    [9, 10]
+    [5,6,7,8],
+    [9,10]
   ],
   "3-4-1-2": [
     [0],
-    [1, 2, 3],
-    [4, 5, 6, 7],
+    [1,2,3],
+    [4,5,6,7],
     [8],
-    [9, 10]
+    [9,10]
   ],
   "3-4-2-1": [
     [0],
-    [1, 2, 3],
-    [4, 5, 6, 7],
-    [8, 9],
+    [1,2,3],
+    [4,5,6,7],
+    [8,9],
     [10]
   ],
   "3-4-3": [
     [0],
-    [1, 2, 3],
-    [4, 5, 6, 7],
-    [8, 9, 10]
+    [1,2,3],
+    [4,5,6,7],
+    [8,9,10]
   ],
   "3-5-2": [
     [0],
-    [1, 2, 3],
-    [4, 5, 6, 7, 8],
-    [9, 10]
+    [1,2,3],
+    [4,5,6,7,8],
+    [9,10]
   ],
 
   "4-1-2-1-2": [
     [0],
-    [1, 2, 3, 4],
+    [1,2,3,4],
     [5],
-    [6, 8, 7],
-    [9, 10]
+    [6,8,7],
+    [9,10]
   ],
   "4-1-2-1-2 (2)": [
     [0],
-    [1, 2, 3, 4],
+    [1,2,3,4],
     [5],
-    [6, 7],
+    [6,7],
     [8],
-    [9, 10]
+    [9,10]
   ],
   "4-1-3-2": [
     [0],
-    [1, 2, 3, 4],
+    [1,2,3,4],
     [5],
-    [6, 7, 8],
-    [9, 10]
+    [6,7,8],
+    [9,10]
   ],
   "4-1-4-1": [
     [0],
-    [1, 2, 3, 4],
+    [1,2,3,4],
     [5],
-    [6, 7, 8, 9],
+    [6,7,8,9],
     [10]
   ],
 
   "4-2-1-3": [
     [0],
-    [1, 2, 3, 4],
-    [5, 6],
+    [1,2,3,4],
+    [5,6],
     [7],
-    [8, 9, 10]
+    [8,9,10]
   ],
   "4-2-2-2": [
     [0],
-    [1, 2, 3, 4],
-    [5, 6],
-    [7, 8],
-    [9, 10]
+    [1,2,3,4],
+    [5,6],
+    [7,8],
+    [9,10]
   ],
   "4-2-3-1": [
     [0],
-    [1, 2, 3, 4],
-    [5, 6],
-    [7, 8, 9],
+    [1,2,3,4],
+    [5,6],
+    [7,8,9],
     [10]
   ],
   "4-2-3-1 (2)": [
     [0],
-    [1, 2, 3, 4],
-    [5, 6],
-    [7, 8, 9],
+    [1,2,3,4],
+    [5,6],
+    [7,8,9],
     [10]
   ],
   "4-2-4": [
     [0],
-    [1, 2, 3, 4],
-    [5, 6],
-    [7, 8, 9, 10]
+    [1,2,3,4],
+    [5,6],
+    [7,8,9,10]
   ],
 
   "4-3-1-2": [
     [0],
-    [1, 2, 3, 4],
-    [5, 6, 7],
+    [1,2,3,4],
+    [5,6,7],
     [8],
-    [9, 10]
+    [9,10]
   ],
   "4-3-2-1": [
     [0],
-    [1, 2, 3, 4],
-    [5, 6, 7],
-    [8, 9],
+    [1,2,3,4],
+    [5,6,7],
+    [8,9],
     [10]
   ],
   "4-3-3": [
     [0],
-    [1, 2, 3, 4],
-    [5, 6, 7],
-    [8, 9, 10]
+    [1,2,3,4],
+    [5,6,7],
+    [8,9,10]
   ],
   "4-3-3 (2)": [
     [0],
-    [1, 2, 3, 4],
-    [5, 6, 7],
-    [8, 9, 10]
+    [1,2,3,4],
+    [5,6,7],
+    [8,9,10]
   ],
   "4-3-3 (3)": [
     [0],
-    [1, 2, 3, 4],
-    [5, 6, 7],
-    [8, 9, 10]
+    [1,2,3,4],
+    [5,6,7],
+    [8,9,10]
   ],
   "4-3-3 (4)": [
     [0],
-    [1, 2, 3, 4],
-    [5, 6, 7],
-    [8, 9, 10]
+    [1,2,3,4],
+    [5,6,7],
+    [8,9,10]
   ],
 
   "4-4-1-1 (2)": [
     [0],
-    [1, 2, 3, 4],
-    [5, 6, 7, 8],
+    [1,2,3,4],
+    [5,6,7,8],
     [9],
     [10]
   ],
   "4-4-2": [
     [0],
-    [1, 2, 3, 4],
-    [5, 6, 7, 8],
-    [9, 10]
+    [1,2,3,4],
+    [5,6,7,8],
+    [9,10]
   ],
   "4-4-2 (2)": [
     [0],
-    [1, 2, 3, 4],
-    [5, 6, 7, 8],
-    [9, 10]
+    [1,2,3,4],
+    [5,6,7,8],
+    [9,10]
   ],
   "4-5-1": [
     [0],
-    [1, 2, 3, 4],
-    [5, 6, 8, 9],
+    [1,2,3,4],
+    [5,6,8,9],
     [7],
     [10]
   ],
   "4-5-1 (2)": [
     [0],
-    [1, 2, 3, 4],
-    [5, 6, 8, 9],
+    [1,2,3,4],
+    [5,6,8,9],
     [7],
     [10]
   ],
 
   "5-2-1-2": [
     [0],
-    [1, 2, 3, 4, 5],
-    [6, 7],
+    [1,2,3,4,5],
+    [6,7],
     [8],
-    [9, 10]
+    [9,10]
   ],
   "5-2-3": [
     [0],
-    [1, 2, 3, 4, 5],
-    [6, 7],
-    [8, 9, 10]
+    [1,2,3,4,5],
+    [6,7],
+    [8,9,10]
   ],
   "5-3-2": [
     [0],
-    [1, 2, 3, 4, 5],
-    [6, 7, 8],
-    [9, 10]
+    [1,2,3,4,5],
+    [6,7,8],
+    [9,10]
   ],
   "5-4-1": [
     [0],
-    [1, 2, 3, 4, 5],
-    [6, 7, 8, 9],
+    [1,2,3,4,5],
+    [6,7,8,9],
     [10]
   ]
 };
 
 /**
  * Short notes for each formation: strengths, weaknesses, best use.
- * Kept compact so the embed doesn't get huge.
  */
 const FORMATION_INFO = {
   "3-1-4-2": "Big central block + 2 STs. Great for press/combos; needs fast CBs and a disciplined CDM.",
-  "3-4-1-2": "CAM links two STs. Good for possession; wide areas can be exposed if LM/RM don’t track.",
+  "3-4-1-2": "CAM links two STs. Good for possession; wide areas exposed if LM/RM don’t track.",
   "3-4-2-1": "Dual CAMs behind ST. Very creative but lone ST must hold the ball well.",
   "3-4-3": "Front 3 stretch the pitch; huge counter threat. Space behind wide CBs/LM/RM.",
   "3-5-2": "Classic all-rounder. Packed midfield and 2 STs; relies on hard-working wide mids.",
@@ -482,6 +481,9 @@ const FORMATION_INFO = {
   "4-3-2-1": "‘Christmas tree’ with CFs in half-spaces. Very good between lines, weaker on wings.",
   "4-3-3": "Modern balanced shape. Natural width; can be outnumbered by heavy midfields.",
   "4-3-3 (2)": "CDM + 2 CMs. Extra cover in front of defence with decent build-up options.",
+  "4-3-3 (3)": "Double pivot tilt; strong defensively, CM must link play.",
+  "4-3-3 (4)": "More attacking with extra CAMs; great for chance creation.",
+
   "4-4-1-1 (2)": "Flat 4 mid + CF under ST. Good balance; wingers must work both ways.",
   "4-4-2": "Simple, aggressive, very effective. Great for pressing; CMs need to handle overloads.",
   "4-4-2 (2)": "More defensive 4-4-2 with CDMs. Hard to break; less creativity from deep.",
@@ -641,79 +643,6 @@ function getVcPanelByMessage(state, messageId) {
 
 // ---------- UI BUILDERS (per guild) ----------
 
-// Build the text lines that visualize the current formation as a "pitch"
-// Rules:
-// - Attack rows at the top, GK row at the bottom (we reverse layout).
-// - Max 3 positions printed per line.
-// - For 4-man rows: [0,1,2,3] -> [0,3] on one line, [1,2] below.
-// - For 5-man rows: [0,1,2,3,4] -> [0,4] on one line, [1,2,3] below.
-function buildFormationDisplayLines(clubBoard) {
-  const layout = FORMATION_VISUAL_ROWS[clubBoard.formation];
-  const slots = clubBoard.slots;
-
-  // Fallback: if layout missing for some reason, keep a simple flat list
-  if (!layout) {
-    return slots.map((slot) => {
-      const emoji = slot.open ? "🟢" : "🔴";
-      let text;
-      if (slot.open) text = "OPEN";
-      else if (slot.takenBy) text = "TAKEN by <@" + slot.takenBy + ">";
-      else text = "TAKEN";
-      return emoji + " " + slot.label + " – " + text;
-    });
-  }
-
-  const lines = [];
-  // Show attackers at the top, GK at the bottom → reverse the row order
-  const rowsToRender = [...layout].reverse();
-
-  for (const row of rowsToRender) {
-    let subrows = [];
-
-    if (row.length <= 3) {
-      subrows.push(row);
-    } else if (row.length === 4) {
-      // Wide players (0,3) above central pair (1,2)
-      subrows.push([row[0], row[3]]);
-      subrows.push([row[1], row[2]]);
-    } else if (row.length === 5) {
-      // Wingbacks/wide mids (0,4) above 3 central players (1,2,3)
-      subrows.push([row[0], row[4]]);
-      subrows.push([row[1], row[2], row[3]]);
-    } else {
-      // Generic fallback: chunk into groups of 3
-      let current = [];
-      for (const idx of row) {
-        current.push(idx);
-        if (current.length === 3) {
-          subrows.push(current);
-          current = [];
-        }
-      }
-      if (current.length) subrows.push(current);
-    }
-
-    for (const sub of subrows) {
-      const cells = sub.map((idx) => {
-        const slot = slots[idx];
-        const emoji = slot.open ? "🟢" : "🔴";
-
-        let status;
-        if (slot.open) status = "OPEN";
-        else if (slot.takenBy) status = "<@" + slot.takenBy + ">";
-        else status = "TAKEN";
-
-        // Short, compact format
-        return emoji + " " + slot.label + " (" + status + ")";
-      });
-
-      lines.push(cells.join("   "));
-    }
-  }
-
-  return lines;
-}
-
 function buildEmbedForClub(guildId, clubKey) {
   const state = getGuildState(guildId);
   if (!state) throw new Error("No state for guild");
@@ -725,15 +654,11 @@ function buildEmbedForClub(guildId, clubKey) {
   const clubBoard = boardState[clubKey];
   if (!clubBoard) throw new Error("No board state for club key: " + clubKey);
 
-  const vizLines = buildFormationDisplayLines(clubBoard);
-
-  // Keep everything compact inside one code block
+  // Compact description; formation is represented by button layout
   const description =
-    "```md\n" +
-    "Club: " + club.name + "\n" +
-    "Formation: " + clubBoard.formation + "\n\n" +
-    vizLines.join("\n") +
-    "\n```";
+    "**Club:** " + club.name +
+    "\n**Formation:** " + clubBoard.formation +
+    "\n\nUse the buttons below to claim your spot.";
 
   const embed = new EmbedBuilder()
     .setTitle("Club Spots")
@@ -755,19 +680,41 @@ function buildEmbedForClub(guildId, clubKey) {
   return embed;
 }
 
-// Buttons for a specific club, based on its current formation slots
+// Buttons for a specific club, arranged in formation order.
+// We flatten the formation rows (attack → mid → defence → GK) into a 1D sequence,
+// then pack into rows of up to 5 buttons (Discord limit). GK ends up on the bottom row.
 function buildButtons(guildId, clubKey) {
   const state = getGuildState(guildId);
   const { boardState } = state;
   const clubBoard = boardState[clubKey];
+  const slots = clubBoard.slots;
+
+  const layout = FORMATION_VISUAL_ROWS[clubBoard.formation];
+
+  let orderedIndices = [];
+  if (layout) {
+    // layout is [GK row, DEF row, MID rows..., ATT row]
+    // We want attack at top, GK at bottom → reverse, then flatten.
+    const rowsTopToBottom = [...layout].reverse();
+    orderedIndices = rowsTopToBottom.flat();
+  } else {
+    // Fallback: natural order, but still GK last by moving index 0 to end
+    orderedIndices = [...slots.keys()];
+    if (orderedIndices.length > 0) {
+      const gk = orderedIndices.shift();
+      orderedIndices.push(gk);
+    }
+  }
 
   const rows = [];
   let currentRow = new ActionRowBuilder();
 
-  clubBoard.slots.forEach((slot, index) => {
+  orderedIndices.forEach((slotIndex) => {
+    const slot = slots[slotIndex];
+
     const button = new ButtonBuilder()
-      // customId: pos_<clubKey>_<index>
-      .setCustomId("pos_" + clubKey + "_" + index)
+      // customId: pos_<clubKey>_<slotIndex>
+      .setCustomId("pos_" + clubKey + "_" + slotIndex)
       .setLabel(slot.label)
       .setStyle(slot.open ? ButtonStyle.Success : ButtonStyle.Danger);
 
@@ -961,7 +908,7 @@ async function startAssignFromVc(interaction, state, clubKey) {
     return interaction.reply({
       content:
         "Only captains, managers, owners, media, or admins can assign or move players.",
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 
@@ -973,7 +920,7 @@ async function startAssignFromVc(interaction, state, clubKey) {
   if (!club) {
     return interaction.reply({
       content: "Unknown club in assignment request.",
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 
@@ -990,14 +937,14 @@ async function startAssignFromVc(interaction, state, clubKey) {
     if (!voiceChannel) {
       return interaction.reply({
         content: "The voice channel linked to this panel no longer exists.",
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
 
     if (interaction.member?.voice?.channelId !== vcId) {
       return interaction.reply({
         content: "You must be in **" + voiceChannel.name + "** to assign players for this panel.",
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
   } else {
@@ -1007,7 +954,7 @@ async function startAssignFromVc(interaction, state, clubKey) {
       return interaction.reply({
         content:
           "You must be in a voice channel with the players you want to assign.",
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
   }
@@ -1016,7 +963,7 @@ async function startAssignFromVc(interaction, state, clubKey) {
   if (members.length === 0) {
     return interaction.reply({
       content: "No non-bot players found in your voice channel to assign.",
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 
@@ -1035,7 +982,7 @@ async function startAssignFromVc(interaction, state, clubKey) {
   return interaction.reply({
     content: "Pick a player to assign in **" + club.name + "**:",
     components: [row],
-    ephemeral: true
+    flags: MessageFlags.Ephemeral
   });
 }
 
@@ -1045,7 +992,7 @@ async function startManagePlayers(interaction, state, clubKey) {
     return interaction.reply({
       content:
         "Only captains, managers, owners, media, or admins can remove or move players.",
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 
@@ -1057,7 +1004,7 @@ async function startManagePlayers(interaction, state, clubKey) {
   if (!clubBoard) {
     return interaction.reply({
       content: "Club not found.",
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 
@@ -1089,7 +1036,7 @@ async function startManagePlayers(interaction, state, clubKey) {
   if (options.length === 0) {
     return interaction.reply({
       content: "There are no players to manage for this club.",
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 
@@ -1104,7 +1051,7 @@ async function startManagePlayers(interaction, state, clubKey) {
   return interaction.reply({
     content: "Pick a player in **" + (club ? club.name : clubKey) + "** to remove or move:",
     components: [row],
-    ephemeral: true
+    flags: MessageFlags.Ephemeral
   });
 }
 
@@ -1114,7 +1061,7 @@ async function doResetSpots(interaction, state, guildId, clubKey) {
     return interaction.reply({
       content:
         "Only captains, managers, owners, media, or admins can reset spots.",
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 
@@ -1123,7 +1070,7 @@ async function doResetSpots(interaction, state, guildId, clubKey) {
 
   return interaction.reply({
     content: "All spots set to 🟢 OPEN for this club.",
-    ephemeral: true
+    flags: MessageFlags.Ephemeral
   });
 }
 
@@ -1133,7 +1080,7 @@ async function setClubFormation(interaction, guildId, clubKey, formationName) {
     return interaction.reply({
       content:
         "Only captains, managers, owners, media, or admins can change formations.",
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 
@@ -1141,7 +1088,7 @@ async function setClubFormation(interaction, guildId, clubKey, formationName) {
   if (!state) {
     return interaction.reply({
       content: "Guild state not found.",
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 
@@ -1149,7 +1096,7 @@ async function setClubFormation(interaction, guildId, clubKey, formationName) {
   if (!positions) {
     return interaction.reply({
       content: "Unknown formation.",
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 
@@ -1201,8 +1148,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         return interaction.reply({
           embeds: [buildEmbedForClub(guildId, key)],
-          components: [buildViewerClubSelect(guildId, key)],
-          ephemeral: false
+          components: [buildViewerClubSelect(guildId, key)]
         });
       }
 
@@ -1212,7 +1158,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!voiceChannel) {
           return interaction.reply({
             content: "You must be in a voice channel to use `/vcspots`.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1221,7 +1167,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           return interaction.reply({
             content:
               "No enabled clubs are available. Use `/spotpanel` to add or enable clubs first.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1243,7 +1189,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             voiceChannel.name +
             "**. I’ll post/update the live panel in this chat.",
           components: [row],
-          ephemeral: true
+          flags: MessageFlags.Ephemeral
         });
       }
     }
@@ -1264,7 +1210,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!currentClub) {
           return interaction.reply({
             content: "Current club not found.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1292,7 +1238,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!disabledClub) {
           return interaction.reply({
             content: "All available club slots are already in use (max 5).",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1302,10 +1248,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         return interaction.reply({
           content:
-            'Added a new club slot: **' +
+            "Added a new club slot: **" +
             disabledClub.name +
-            '**. Use "Rename Club" & "Formation" to configure it.',
-          ephemeral: true
+            "**. Use \"Rename Club\" & \"Formation\" to configure it.",
+          flags: MessageFlags.Ephemeral
         });
       }
 
@@ -1316,7 +1262,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!currentClub || !currentClub.enabled) {
           return interaction.reply({
             content: "This club cannot be removed.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1324,7 +1270,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (enabledCount <= 1) {
           return interaction.reply({
             content: "You must keep at least one club enabled.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1335,7 +1281,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             return interaction.reply({
               content:
                 "This club still has taken spots. Free all spots first before removing it.",
-              ephemeral: true
+              flags: MessageFlags.Ephemeral
             });
           }
         }
@@ -1354,7 +1300,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             "Removed club **" +
             currentClub.name +
             "**. Panels may need to be recreated to reflect this change.",
-          ephemeral: true
+          flags: MessageFlags.Ephemeral
         });
       }
 
@@ -1366,7 +1312,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           return interaction.reply({
             content:
               "Only captains, managers, owners, media, or admins can use player tools.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1393,7 +1339,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return interaction.reply({
           content: "What do you want to do?",
           components: [row],
-          ephemeral: true
+          flags: MessageFlags.Ephemeral
         });
       }
 
@@ -1405,7 +1351,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           return interaction.reply({
             content:
               "Only captains, managers, owners, media, or admins can change formations.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1431,7 +1377,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           content:
             "Choose a formation. Changing formation will reset all spots to OPEN for this club.",
           components: [row],
-          ephemeral: true
+          flags: MessageFlags.Ephemeral
         });
       }
 
@@ -1468,7 +1414,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 "This panel is linked to voice channel **" +
                 (vcChannel ? vcChannel.name : vcId) +
                 "**. Join that voice channel to claim or free a spot.",
-              ephemeral: true
+              flags: MessageFlags.Ephemeral
             });
           }
         } else {
@@ -1478,7 +1424,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             return interaction.reply({
               content:
                 "You must be connected to a voice channel to claim or free a spot.",
-              ephemeral: true
+              flags: MessageFlags.Ephemeral
             });
           }
         }
@@ -1503,7 +1449,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             return interaction.reply({
               content:
                 "This spot is already taken by someone else. Ask a manager if you need to be moved.",
-              ephemeral: true
+              flags: MessageFlags.Ephemeral
             });
           }
         }
@@ -1525,7 +1471,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!newName) {
           return interaction.reply({
             content: "Club name cannot be empty.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1533,7 +1479,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!stateModal) {
           return interaction.reply({
             content: "Guild state not found.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1541,7 +1487,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!currentClub) {
           return interaction.reply({
             content: "Current club not found.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1551,7 +1497,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         return interaction.reply({
           content: "Club renamed to **" + newName + "**.",
-          ephemeral: true
+          flags: MessageFlags.Ephemeral
         });
       }
     }
@@ -1570,7 +1516,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!club || !club.enabled) {
           return interaction.reply({
             content: "Unknown or disabled club selected.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1587,7 +1533,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!club) {
           return interaction.reply({
             content: "Unknown club selected.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1628,7 +1574,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           return interaction.reply({
             content:
               "Only captains, managers, owners, media, or admins can assign or move players.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1637,7 +1583,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!club) {
           return interaction.reply({
             content: "Unknown club in assignment request.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1646,7 +1592,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!clubBoard) {
           return interaction.reply({
             content: "Club board not found.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1689,7 +1635,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           return interaction.reply({
             content:
               "Only captains, managers, owners, media, or admins can assign or move players.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1702,7 +1648,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!club) {
           return interaction.reply({
             content: "Unknown club in assignment request.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1710,7 +1656,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!clubBoard || !clubBoard.slots[slotIndex]) {
           return interaction.reply({
             content: "Unknown spot for this club.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1751,7 +1697,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!club || !club.enabled) {
           return interaction.reply({
             content: "Unknown or disabled club selected.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1815,7 +1761,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           return interaction.reply({
             content:
               "Only captains, managers, owners, media, or admins can remove or move players.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1824,7 +1770,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!club) {
           return interaction.reply({
             content: "Unknown club in manage request.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1833,7 +1779,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!clubBoard) {
           return interaction.reply({
             content: "Club board not found.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1881,7 +1827,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           return interaction.reply({
             content:
               "Only captains, managers, owners, media, or admins can remove or move players.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1894,7 +1840,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!club) {
           return interaction.reply({
             content: "Unknown club in manage request.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1902,7 +1848,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (!clubBoard) {
           return interaction.reply({
             content: "Club board not found.",
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
 
@@ -1920,7 +1866,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           if (!slot) {
             return interaction.reply({
               content: "Unknown position for this club.",
-              ephemeral: true
+              flags: MessageFlags.Ephemeral
             });
           }
           slot.open = false;
@@ -1956,7 +1902,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({
         content: "Error.",
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
   }
