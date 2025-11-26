@@ -256,6 +256,47 @@ const FORMATION_POSITIONS = {
   ]
 };
 
+const FORMATION_INFO = {
+  // 3-at-the-back
+  "3-1-4-2": `Strengths: Very strong through the middle with a back three plus a screening CDM, good for patient build-up and countering central overloads. Weaknesses: Can be exposed in the wide channels if LM/RM don’t track back. Best used when you want two strikers up top and control of the middle third. Key players: Mobile, aggressive CBs; a disciplined CDM who reads play well; high-stamina LM/RM; one link-up ST and one runner in behind.`,
+  "3-4-1-2": `Strengths: Central overload with a CAM behind two strikers, ideal for through balls and quick combinations. Weaknesses: Flanks can be vulnerable vs teams with very attacking fullbacks or wide wingers. Best used when you have a playmaking CAM and two complementary forwards. Key players: Ball-playing CBs, box-to-box CMs, creative CAM, one target ST and one pacey ST.`,
+  "3-4-2-1": `Strengths: Very strong between the lines with two CAMs/CFs behind a lone ST, great for tiki-taka and short passing. Weaknesses: Only one true striker and no classic wingers, so crosses are less threatening. Best used when you have two creative attackers who like to drift and combine. Key players: Composed CBs, hardworking CM pair, two technical CAMs, a complete ST who can hold up and finish.`,
+  "3-4-3": `Strengths: Super aggressive front three with wide forwards, great for pressing and fast transitions. Weaknesses: Midfield can be outnumbered and wingbacks must work hard both ways. Best used when you want to swarm the opponent’s back line and play direct. Key players: Fast LW/RW who can score, physical CBs, energetic CMs, clinical ST.`,
+  "3-5-2": `Strengths: Massive control in midfield with five across and two STs, good for slow build-up or long spells of possession. Weaknesses: Width depends heavily on LM/RM; if they don’t track back, flanks are exposed. Best used when you have strong central players and want to dominate the middle. Key players: Stamina monsters at LM/RM, two-way CDMs, creative CAM, a target ST plus a runner.`,
+
+  // 4-at-the-back, 4-1-x-x and 4-2-x-x shapes
+  "4-1-2-1-2": `Strengths: Narrow diamond that overloads the center and supports two STs, good for quick one-twos and through balls. Weaknesses: Very little natural width, so you can struggle vs compact low blocks. Best used when your fullbacks like to bomb forward and your CAM is a star. Key players: Overlapping LB/RB, strong CDM, high-vision CAM, two strikers with good off-the-ball movement.`,
+  "4-1-2-1-2 (2)": `Strengths: Even more compact diamond with CM/CM, great for short passing and central dominance. Weaknesses: Predictable if opponents clog the middle; relies on fullbacks for width. Best used with technically sound CMs and a creative CAM. Key players: Press-resistant CMs, smart CDM, playmaking CAM, versatile STs who can drop in.`,
+  "4-1-3-2": `Strengths: Solid single pivot CDM behind an attacking three and two STs, good for pressing high and playing direct. Weaknesses: Only one holding mid, so counters through the middle can be dangerous. Best used when you trust your CDM and want numbers in attack. Key players: Strong CDM, balanced LM/RM, CAM/CM with vision, two aggressive strikers.`,
+  "4-1-4-1": `Strengths: Very stable defensively with a CDM shielding the back four and a compact midfield line of four. Weaknesses: Lone ST can get isolated if wide players don’t join quickly. Best used when protecting a lead or playing vs stronger teams. Key players: Disciplined CDM, high-work-rate wide mids, box-to-box CMs, a complete ST who can hold up play.`,
+  "4-2-1-3": `Strengths: Double pivot protects the back four while CAM and front three attack, great balance between defense and offense. Weaknesses: CAM can be crowded out if team doesn’t create wide overloads. Best used with quick wingers and a strong central CAM. Key players: Two intelligent CDMs, creative CAM, pacey LW/RW, clinical ST.`,
+  "4-2-2-2": `Strengths: Very strong in central channels with two CAMs and two STs, good for intricate passing and central overloads. Weaknesses: Flanks can be open; you rely heavily on fullbacks for width. Best used when your fullbacks are very attacking and your CAMs are creative. Key players: Two disciplined CDMs, technical CAMs, overlapping LB/RB, two deadly finishers.`,
+  "4-2-3-1": `Strengths: One of the most balanced shapes; double pivot for stability plus three attackers behind a ST. Great for possession or counter-attacks. Weaknesses: Wide CAMs must track back or fullbacks get overloaded. Best used when you have a standout CAM and versatile wide attackers. Key players: All-round CDM/CM pair, playmaking central CAM, agile wide CAMs, complete ST.`,
+  "4-2-3-1 (2)": `Strengths: LM/RM + CAM behind a ST gives natural width and a central creator, good for crosses and cutbacks. Weaknesses: If LM/RM don’t work defensively, you can be stretched wide. Best used when you like to attack through the wings. Key players: Stamina-heavy wide mids, solid CDM duo, creative CAM, strong aerial ST.`,
+  "4-2-4": `Strengths: Extremely aggressive with four forwards, ideal for all-out attack and late-game comebacks. Weaknesses: Midfield is thin; you’ll be vulnerable to counters and outnumbered centrally. Best used when chasing a goal or vs weaker opponents. Key players: Two high-energy CMs, fast LW/RW, poacher ST plus target ST.`,
+
+  // 4-3-x-x
+  "4-3-1-2": `Strengths: Three CMs plus a CAM behind two STs; strong centrally with a natural link between mid and attack. Weaknesses: No natural width, so fullbacks must push high. Best used when your midfielders are strong passers and can control tempo. Key players: One holding CM, two box-to-box CMs, creative CAM, two complementary strikers.`,
+  "4-3-2-1": `Strengths: “Christmas tree” structure; two CFs behind a lone ST for heavy central overloads and intricate build-up. Weaknesses: Almost no width; can feel cramped versus low blocks. Best used when your attackers prefer to play between lines rather than hugging the touchline. Key players: Three balanced CMs, two creative CFs, a complete ST.`,
+  "4-3-3": `Strengths: Classic all-round shape with three CMs and a front three; great for pressing, possession, and flexible attacking patterns. Weaknesses: Middle CM can get overworked if wide forwards don’t defend. Best used when you have strong wingers and a solid midfield triangle. Key players: One holding CM, two shuttling CMs, pacey LW/RW, reliable ST.`,
+  "4-3-3 (2)": `Strengths: CDM + two CMs give extra protection while keeping a dangerous front three; ideal for balanced play. Weaknesses: If CMs are too defensive, you can lack creativity. Best used when one player excels as a pure CDM. Key players: Destroyer-type CDM, two box-to-box CMs, fast wingers, clinical ST.`,
+  "4-3-3 (3)": `Strengths: Double pivot plus one CM makes it very solid defensively, great for sitting deeper and countering. Weaknesses: Can feel conservative; fewer runners from midfield into the box. Best used vs stronger teams or fast counters. Key players: Two disciplined CDMs, a linking CM, pacey LW/RW, lone ST who can exploit space.`,
+  "4-3-3 (4)": `Strengths: CM + two CAMs behind a front three makes this very attacking and creative. Weaknesses: Defensive cover in midfield is lighter; can be risky if fullbacks push too high. Best used when you want to dominate possession in the final third. Key players: One hard-working CM, two creative CAM types, flair LW/RW, top-tier finisher up front.`,
+
+  // 4-4-x-x & 4-5-x
+  "4-4-1-1 (2)": `Strengths: Solid 4-4-2 base with a CF dropping off the ST for link-up play, good balance between defense and attack. Weaknesses: Wide mids must work hard or your fullbacks get exposed. Best used when you have a second striker good at creating and scoring. Key players: Two balanced CMs, high-work-rate LM/RM, creative CF, focal-point ST.`,
+  "4-4-2": `Strengths: Very simple, very balanced: two banks of four and two STs, great for counters and crosses. Weaknesses: Outnumbered by 3 or 5-man midfields; can struggle to progress the ball centrally. Best used with strong wide players and two strikers who link well. Key players: Disciplined CBs, LM/RM with pace and crossing, one target ST and one runner.`,
+  "4-4-2 (2)": `Strengths: Double CDM gives excellent central protection while keeping two STs up top. Weaknesses: Less creativity from midfield; you’ll rely on flanks and long balls. Best used to protect a lead but still have counter threat. Key players: Two strong CDMs, robust CBs, hard-working LM/RM, quick strikers.`,
+  "4-5-1": `Strengths: Very strong midfield presence with a CAM; good for controlling possession and firing late runs into the box. Weaknesses: Lone ST can be isolated if wide players stay too deep. Best used when your CAM is a main attacking outlet. Key players: Two solid CMs, creative CAM, LM/RM who can cut inside, complete ST.`,
+  "4-5-1 (2)": `Strengths: Double pivot CDMs + CAM makes it defensively secure while still having a creator. Weaknesses: Can feel passive if LM/RM and CAM don’t push high. Best used when you want to sit deeper but still threaten on counters through the middle. Key players: Two defensive-minded CDMs, high-energy LM/RM, clever CAM, pacey ST.`,
+
+  // 5-at-the-back
+  "5-2-1-2": `Strengths: Three CBs plus wingbacks and a CAM behind two STs; very secure at the back but still dangerous centrally. Weaknesses: Can be pinned deep if wingbacks are slow or too defensive. Best used vs strong opponents or when playing on the counter. Key players: Quick LWB/RWB, aerially dominant CBs, two-way CMs, creative CAM, two strikers who can exploit space.`,
+  "5-2-3": `Strengths: Wingbacks plus a front three make this great for wide counters; very solid defensively. Weaknesses: Only two CMs, so you can be overrun centrally. Best used when your wingers and wingbacks are very fast. Key players: Pace merchant LWB/RWB, mobile CB trio, hard-working CMs, direct LW/RW, fast ST.`,
+  "5-3-2": `Strengths: Extremely solid with three CBs and three CMs plus two STs; tough to break down while still having a front two. Weaknesses: Width relies fully on wingbacks and can be slow to transition if CMs are too defensive. Best used when protecting leads or playing pragmatic football. Key players: Strong CBs, tireless wingbacks, balanced midfield three, two strikers who can hold up and finish.`,
+  "5-4-1": `Strengths: Very deep and compact, ideal for parking the bus or absorbing pressure. Weaknesses: Limited attacking options with one ST and deep wide mids. Best used when you’re outmatched and playing for counters or set pieces. Key players: Dominant CB trio, disciplined wingbacks, hard-working LM/RM, a lone ST who can win duels and hold the ball up.`
+};
+
 const DEFAULT_FORMATION = "4-3-3";
 
 // Default club slots per guild; names are editable from the panel
@@ -393,13 +434,23 @@ function buildEmbedForClub(guildId, clubKey) {
     return `**${slot.label}** – ${emoji} ${text}`;
   });
 
-  return new EmbedBuilder()
+  const embed = new EmbedBuilder()
     .setTitle(`Club Spots – ${clubBoard.formation}`)
     .setDescription(`**Club:** ${club.name}\n\n${lines.join('\n')}`)
     .setFooter({
       text:
         'Players: click a spot to claim. Managers can assign/move/remove players and change formations.'
     });
+
+  const info = FORMATION_INFO[clubBoard.formation];
+  if (info) {
+    embed.addFields({
+      name: 'Formation notes',
+      value: info.length > 1024 ? info.slice(0, 1021) + '...' : info
+    });
+  }
+
+  return embed;
 }
 
 // Buttons for a specific club, based on its current formation slots
