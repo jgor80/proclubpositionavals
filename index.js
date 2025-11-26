@@ -261,11 +261,11 @@ const FORMATION_POSITIONS = {
 // We render them front-to-back in the embed, so attackers appear on top, GK at bottom.
 const FORMATION_VISUAL_ROWS = {
   "3-1-4-2": [
-    [0],            // GK
-    [1, 2, 3],      // CB,CB,CB
-    [4],            // CDM
-    [5, 6, 7, 8],   // LM,CM,CM,RM
-    [9, 10]         // ST,ST
+    [0],
+    [1, 2, 3],
+    [4],
+    [5, 6, 7, 8],
+    [9, 10]
   ],
   "3-4-1-2": [
     [0],
@@ -460,47 +460,41 @@ const FORMATION_VISUAL_ROWS = {
 };
 
 /**
- * High-level notes on each formation: strengths, weaknesses, and best use cases.
+ * Short notes for each formation: strengths, weaknesses, best use.
+ * Kept compact so the embed doesn't get huge.
  */
 const FORMATION_INFO = {
-  "3-1-4-2": "Strengths: Very strong central presence with CDM screen and two strikers; ideal for teams that press high and like quick combinations through the middle. Weaknesses: Vulnerable to wide overloads because wingbacks must cover the entire flank. Best used when your CBs are quick and good in 1v1s, and your CDM is a disciplined destroyer.",
-  "3-4-1-2": "Strengths: Solid spine with a dedicated CAM to link midfield and attack; good for possession play and through balls. Weaknesses: Wide areas can be exposed if LM/RM don't track back. Works best with a creative CAM and mobile STs who make diagonal runs.",
-  "3-4-2-1": "Strengths: Excellent for fluid attacking play with dual CAMs behind a lone ST; great in tight spaces. Weaknesses: Can feel light in the box on crosses; relies heavily on the lone striker's hold-up play. Best when your ST is strong and your CAMs have good shooting and passing.",
-  "3-4-3": "Strengths: Very aggressive, with a front three stretching the pitch and strong counterattacking potential. Weaknesses: Space behind wingbacks and wide CBs can be exploited. Works well when your LW/RW are fast dribblers and your CBs are good at covering channels.",
-  "3-5-2": "Strengths: Classic all-rounder three-at-back; two STs and a packed midfield give control in most phases. Weaknesses: Requires high work-rate from wide mids to support both attack and defence. Best with a creative CAM and a balanced ST pair (one target, one runner).",
+  "3-1-4-2": "Big central block + 2 STs. Great for press/combos; needs fast CBs and a disciplined CDM.",
+  "3-4-1-2": "CAM links two STs. Good for possession; wide areas can be exposed if LM/RM don’t track.",
+  "3-4-2-1": "Dual CAMs behind ST. Very creative but lone ST must hold the ball well.",
+  "3-4-3": "Front 3 stretch the pitch; huge counter threat. Space behind wide CBs/LM/RM.",
+  "3-5-2": "Classic all-rounder. Packed midfield and 2 STs; relies on hard-working wide mids.",
 
-  "4-1-2-1-2": "Strengths: Great central overload with a diamond midfield and two STs; excellent for short passing and quick 1-2s. Weaknesses: Relies on fullbacks for width, which can leave gaps on the flanks. Use when your CDM is disciplined and your STs are good at link-up play.",
-  "4-1-2-1-2 (2)": "Strengths: Narrow diamond that dominates the centre, very tough to play through. Weaknesses: Almost no natural width without pushing FBs very high. Ideal when you have strong CMs with stamina and a creative CAM pulling the strings.",
-  "4-1-3-2": "Strengths: Nice balance between width and central presence with a CDM anchor; good for direct attacking football. Weaknesses: Only one true holder; can be overrun if the three ahead don’t help defensively. Works best with a robust CDM and box-to-box CM.",
-  "4-1-4-1": "Strengths: Very solid defensively with a lone ST who can press and hold the ball; midfield line is hard to break. Weaknesses: Can feel isolated up front; requires wide mids who can both attack and defend. Ideal when protecting a lead or playing vs stronger sides.",
+  "4-1-2-1-2": "Diamond midfield for quick 1-2s. Width mostly from fullbacks; CDM must shield well.",
+  "4-1-3-2": "CDM anchor with 3 mids + 2 STs. Direct and aggressive; CM must work defensively.",
+  "4-1-4-1": "Very solid block. Great for compact defence; lone ST can get isolated.",
+  "4-2-1-3": "Double pivot protects defence; CAM + wide forwards attack. Build-up can be slow.",
+  "4-2-2-2": "Two CDMs + two CAMs. Strong central triangles; width comes mainly from fullbacks.",
+  "4-2-3-1": "Meta-style balance. Safe in defence with good attacking shape; lone ST needs support.",
+  "4-2-4": "Ultra-attacking. Great for late comebacks, but midfield is wide open on counters.",
 
-  "4-2-1-3": "Strengths: Double CDM pivot gives great defensive cover, freeing your CAM and front three to attack. Weaknesses: Build-up can be slow if CDMs are too defensive. Use when you have strong wingers and a ST who finishes well in the box.",
-  "4-2-2-2": "Strengths: Two CDMs and two CAMs create strong central triangles, fantastic for quick vertical play. Weaknesses: No true wingers; width depends heavily on fullbacks. Best when your CAMs have good long shots and passing and your CDMs can recycle possession.",
-  "4-2-3-1": "Strengths: One of the most balanced and meta-friendly shapes; very stable defensively, flexible in attack. Weaknesses: Lone ST must work hard; if isolated, attacks can stall. Great when your CAMs are creative and your fullbacks provide balanced support.",
-  "4-2-3-1 (2)": "Strengths: Wider variant with natural LM/RM width, stretching the pitch while keeping double pivot security. Weaknesses: Central space for the single CAM can get crowded without movement. Use when your wide players are strong crossers and your CAM can find pockets.",
-  "4-2-4": "Strengths: Extremely aggressive with four up top; ideal for late-game comebacks and constant pressure. Weaknesses: Midfield is very open, vulnerable to counters. Only use if you trust your CBs and are willing to trade control for chance volume.",
+  "4-3-1-2": "3 CMs + CAM feeding 2 STs. Strong through the middle; flanks rely on fullbacks.",
+  "4-3-2-1": "‘Christmas tree’ with CFs in half-spaces. Very good between lines, weaker on wings.",
+  "4-3-3": "Modern balanced shape. Natural width; can be outnumbered by heavy midfields.",
+  "4-3-3 (2)": "CDM + 2 CMs. Extra cover in front of defence with decent build-up options.",
+  "4-4-1-1 (2)": "Flat 4 mid + CF under ST. Good balance; wingers must work both ways.",
+  "4-4-2": "Simple, aggressive, very effective. Great for pressing; CMs need to handle overloads.",
+  "4-4-2 (2)": "More defensive 4-4-2 with CDMs. Hard to break; less creativity from deep.",
+  "4-5-1": "Packed midfield to control centre. Lone ST and wide mids must carry the attack.",
+  "4-5-1 (2)": "Double pivot 4-5-1. Very safe but fewer forward runs from midfield.",
 
-  "4-3-1-2": "Strengths: Strong central triangle of CMs with a CAM feeding two STs; excellent for direct, vertical play. Weaknesses: Width mostly from FBs; can be exposed on flanks. Best when your CMs are all-rounders and your STs complement each other.",
-  "4-3-2-1": "Strengths: 'Christmas tree' shape lets CFs drift into half-spaces, creating overloads between lines. Weaknesses: Wide areas can be free for opposition fullbacks. Use when your CFs are technical and comfortable dropping deep.",
-  "4-3-3": "Strengths: Classic modern shape; very balanced with clear roles for each line and great natural width. Weaknesses: Central overloads from opponents can test your three CMs. Ideal when your wingers are quick and your ST is a strong finisher.",
-  "4-3-3 (2)": "Strengths: CDM + two CMs give extra defensive stability without killing build-up. Weaknesses: Slightly less attacking freedom from midfield. Best when your CDM is dominant and your CMs are good carriers.",
-  "4-3-3 (3)": "Strengths: Very defensive midfield with double pivot; good for sitting deeper and breaking. Weaknesses: Fewer runners from midfield into the box. Use when protecting a lead or vs very strong midfields.",
-  "4-3-3 (4)": "Strengths: More attacking double-CAM feel in midfield; lots of options between the lines. Weaknesses: Can leave holding player exposed in transitions. Best with a world-class holding CM and creative CAM-type mids.",
-
-  "4-4-1-1 (2)": "Strengths: Flat midfield four with a support striker (CF) behind ST; good balance between defence and link play. Weaknesses: Can get stretched if wingers don’t track back. Works when your CF is a creator and your wingers are hard-working.",
-  "4-4-2": "Strengths: Simple, balanced, and very effective; two banks of four with two STs. Great for pressing and direct play. Weaknesses: Central overloads can hurt if CMs are weak. Best with a destroyer-playmaker CM combo and a target + runner up front.",
-  "4-4-2 (2)": "Strengths: More defensive with CDMs; difficult to play through the middle. Weaknesses: Less creativity from deep. Good choice when you want stability but still threaten with two STs.",
-  "4-5-1": "Strengths: Packed midfield for possession and second balls; strong when you want to dominate the centre. Weaknesses: Lone ST can be isolated, especially without overlapping FBs. Ideal when your wide players can cut inside and your CAM is a key playmaker.",
-  "4-5-1 (2)": "Strengths: Double pivot variant adds extra shielding to the back line. Weaknesses: Attacking runs from deep are more limited. Use vs very strong or pacey opponents to slow the game down.",
-
-  "5-2-1-2": "Strengths: Three CBs plus wingbacks give huge defensive stability; CAM and two STs still offer strong counter threat. Weaknesses: Can get pinned back if wingbacks can't get out. Best when your CBs are good on the ball and wingbacks have pace and stamina.",
-  "5-2-3": "Strengths: Very solid back five with front three for counters; brilliant for soaking up pressure. Weaknesses: Midfield can be bypassed if CMs lack mobility. Use when you expect to defend deep and break quickly with fast wide forwards.",
-  "5-3-2": "Strengths: Rock-solid defensive structure with a versatile midfield three and two STs. Weaknesses: Can lack natural width high up if CMs stay deep. Best when your wingbacks are aggressive and your CMs can both defend and progress play.",
-  "5-4-1": "Strengths: Extremely defensive and compact; perfect for closing games or playing massive underdog. Weaknesses: Very limited attacking numbers; relies heavily on lone ST and wide mids. Use sparingly when result protection is the priority."
+  "5-2-1-2": "Back 5 + CAM + 2 STs. Strong defensively and good on the break; wingbacks key.",
+  "5-2-3": "Back 5 with front 3. Great for deep block + counters; midfield can be bypassed.",
+  "5-3-2": "Rock-solid with 3 CMs and 2 STs. Width depends on wingbacks pushing high.",
+  "5-4-1": "Maximum defensive security. Hard to break but very limited numbers in attack."
 };
 
 // Subset of formations to show in the formation select menu (Discord limit 25 options).
-// Includes all 3-at-the-back, all 5-at-the-back, and the most commonly used 4-at-the-back shapes.
 const FORMATION_MENU_ORDER = [
   "3-1-4-2",
   "3-4-1-2",
@@ -565,7 +559,8 @@ function cloneDefaultClubs() {
 }
 
 function createEmptyBoardForFormation(formationName) {
-  const positions = FORMATION_POSITIONS[formationName] || FORMATION_POSITIONS[DEFAULT_FORMATION];
+  const positions =
+    FORMATION_POSITIONS[formationName] || FORMATION_POSITIONS[DEFAULT_FORMATION];
   return {
     formation: formationName,
     slots: positions.map((label) => ({
@@ -647,11 +642,16 @@ function getVcPanelByMessage(state, messageId) {
 // ---------- UI BUILDERS (per guild) ----------
 
 // Build the text lines that visualize the current formation as a "pitch"
+// Rules:
+// - Attack rows at the top, GK row at the bottom (we reverse layout).
+// - Max 3 positions printed per line.
+// - For 4-man rows: [0,1,2,3] -> [0,3] on one line, [1,2] below.
+// - For 5-man rows: [0,1,2,3,4] -> [0,4] on one line, [1,2,3] below.
 function buildFormationDisplayLines(clubBoard) {
   const layout = FORMATION_VISUAL_ROWS[clubBoard.formation];
   const slots = clubBoard.slots;
 
-  // Fallback: if layout missing for some reason, keep the old flat list style
+  // Fallback: if layout missing for some reason, keep a simple flat list
   if (!layout) {
     return slots.map((slot) => {
       const emoji = slot.open ? "🟢" : "🔴";
@@ -664,24 +664,51 @@ function buildFormationDisplayLines(clubBoard) {
   }
 
   const lines = [];
-  // We want to show attackers at the top, GK at the bottom → reverse the row order
+  // Show attackers at the top, GK at the bottom → reverse the row order
   const rowsToRender = [...layout].reverse();
 
   for (const row of rowsToRender) {
-    const cells = row.map((idx) => {
-      const slot = slots[idx];
-      const emoji = slot.open ? "🟢" : "🔴";
+    let subrows = [];
 
-      let status;
-      if (slot.open) status = "OPEN";
-      else if (slot.takenBy) status = "<@" + slot.takenBy + ">";
-      else status = "TAKEN";
+    if (row.length <= 3) {
+      subrows.push(row);
+    } else if (row.length === 4) {
+      // Wide players (0,3) above central pair (1,2)
+      subrows.push([row[0], row[3]]);
+      subrows.push([row[1], row[2]]);
+    } else if (row.length === 5) {
+      // Wingbacks/wide mids (0,4) above 3 central players (1,2,3)
+      subrows.push([row[0], row[4]]);
+      subrows.push([row[1], row[2], row[3]]);
+    } else {
+      // Generic fallback: chunk into groups of 3
+      let current = [];
+      for (const idx of row) {
+        current.push(idx);
+        if (current.length === 3) {
+          subrows.push(current);
+          current = [];
+        }
+      }
+      if (current.length) subrows.push(current);
+    }
 
-      return emoji + " " + slot.label + ": " + status;
-    });
+    for (const sub of subrows) {
+      const cells = sub.map((idx) => {
+        const slot = slots[idx];
+        const emoji = slot.open ? "🟢" : "🔴";
 
-    // Add some spacing between positions on the same line
-    lines.push(cells.join("   "));
+        let status;
+        if (slot.open) status = "OPEN";
+        else if (slot.takenBy) status = "<@" + slot.takenBy + ">";
+        else status = "TAKEN";
+
+        // Short, compact format
+        return emoji + " " + slot.label + " (" + status + ")";
+      });
+
+      lines.push(cells.join("   "));
+    }
   }
 
   return lines;
@@ -699,14 +726,17 @@ function buildEmbedForClub(guildId, clubKey) {
   if (!clubBoard) throw new Error("No board state for club key: " + clubKey);
 
   const vizLines = buildFormationDisplayLines(clubBoard);
+
+  // Keep everything compact inside one code block
   const description =
-    "**Club:** " + club.name + "\n\n" +
     "```md\n" +
+    "Club: " + club.name + "\n" +
+    "Formation: " + clubBoard.formation + "\n\n" +
     vizLines.join("\n") +
     "\n```";
 
   const embed = new EmbedBuilder()
-    .setTitle("Club Spots – " + clubBoard.formation)
+    .setTitle("Club Spots")
     .setDescription(description)
     .setFooter({
       text:
@@ -915,7 +945,9 @@ client.on(Events.GuildCreate, async (guild) => {
   try {
     if (!client.application?.commands) return;
     await client.application.commands.set(COMMANDS, guild.id);
-    console.log("✅ Commands registered in newly joined guild " + guild.name + " (" + guild.id + ")");
+    console.log(
+      "✅ Commands registered in newly joined guild " + guild.name + " (" + guild.id + ")"
+    );
   } catch (err) {
     console.error("⚠️ Failed to register commands in new guild", guild.id, err);
   }
@@ -957,8 +989,7 @@ async function startAssignFromVc(interaction, state, clubKey) {
 
     if (!voiceChannel) {
       return interaction.reply({
-        content:
-          "The voice channel linked to this panel no longer exists.",
+        content: "The voice channel linked to this panel no longer exists.",
         ephemeral: true
       });
     }
@@ -1207,7 +1238,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const row = new ActionRowBuilder().addComponents(select);
 
         return interaction.reply({
-          content: "Pick which club is playing in **" + voiceChannel.name + "**. I’ll post/update the live panel in this chat.",
+          content:
+            "Pick which club is playing in **" +
+            voiceChannel.name +
+            "**. I’ll post/update the live panel in this chat.",
           components: [row],
           ephemeral: true
         });
@@ -1267,7 +1301,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
         stateBtn.currentClubKey = disabledClub.key;
 
         return interaction.reply({
-          content: "Added a new club slot: **" + disabledClub.name + "**. Use \"Rename Club\" & \"Formation\" to configure it.",
+          content:
+            'Added a new club slot: **' +
+            disabledClub.name +
+            '**. Use "Rename Club" & "Formation" to configure it.',
           ephemeral: true
         });
       }
@@ -1313,7 +1350,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
 
         return interaction.reply({
-          content: "Removed club **" + currentClub.name + "**. Panels may need to be recreated to reflect this change.",
+          content:
+            "Removed club **" +
+            currentClub.name +
+            "**. Panels may need to be recreated to reflect this change.",
           ephemeral: true
         });
       }
@@ -1424,7 +1464,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
             }
 
             return interaction.reply({
-              content: "This panel is linked to voice channel **" +
+              content:
+                "This panel is linked to voice channel **" +
                 (vcChannel ? vcChannel.name : vcId) +
                 "**. Join that voice channel to claim or free a spot.",
               ephemeral: true
@@ -1689,7 +1730,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await refreshClubPanels(guildIdSel, clubKey);
 
         return interaction.update({
-          content: "Assigned <@" + userId + "> to **" + slot.label + "** in **" + club.name + "**.",
+          content:
+            "Assigned <@" +
+            userId +
+            "> to **" +
+            slot.label +
+            "** in **" +
+            club.name +
+            "**.",
           components: []
         });
       }
@@ -1751,7 +1799,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
         };
 
         return interaction.update({
-          content: "Linked **" + club.name + "** to voice channel **" +
+          content:
+            "Linked **" +
+            club.name +
+            "** to voice channel **" +
             (vc ? vc.name : "this VC") +
             "** and posted/updated the live panel in this chat.",
           components: []
@@ -1882,9 +1933,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
           content:
             choice === "__REMOVE__"
               ? "Removed <@" + userId + "> from all spots in **" + club.name + "**."
-              : "Moved <@" + userId + "> to **" +
+              : "Moved <@" +
+                userId +
+                "> to **" +
                 clubBoard.slots[parseInt(choice, 10)].label +
-                "** in **" + club.name + "**.",
+                "** in **" +
+                club.name +
+                "**.",
           components: []
         });
       }
