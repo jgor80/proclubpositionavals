@@ -106,6 +106,7 @@ function getClubByKey(clubs, key) {
 }
 
 // Admins or roles with "captain" in the name
+// (kept here in case you want to re-use later, but no longer used)
 function isManager(member) {
   if (!member) return false;
   if (member.permissions?.has(PermissionsBitField.Flags.ManageGuild)) return true;
@@ -141,7 +142,7 @@ function buildEmbedForClub(guildId, clubKey) {
     .setDescription(`**Club:** ${club.name}\n\n${lines.join('\n')}`)
     .setFooter({
       text:
-        'Players: click a spot to claim. Admins/Captains: use the panel to manage spots & clubs.'
+        'Players: click a spot to claim. Anyone can use the panel to manage spots & clubs.'
     });
 }
 
@@ -184,8 +185,8 @@ function buildClubSelect(guildId) {
         label: club.name,
         value: club.key,
         default: club.key === currentClubKey
-      }))
-    );
+      })
+    ));
 
   return new ActionRowBuilder().addComponents(select);
 }
@@ -291,13 +292,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const cmd = interaction.commandName;
 
       if (cmd === 'spotpanel') {
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content: 'Only admins or captains can create the control panel.',
-            ephemeral: true
-          });
-        }
-
+        // Anyone can create the control panel now
         const msg = await interaction.reply({
           embeds: [buildEmbedForClub(guildId, state.currentClubKey)],
           components: buildAdminComponents(guildId),
@@ -333,13 +328,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const { clubs: clubsBtn, boardState: boardStateBtn } = stateBtn;
 
       if (interaction.customId === 'rename_club') {
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content: 'Only admins or captains can rename clubs.',
-            ephemeral: true
-          });
-        }
-
+        // Anyone can rename clubs
         const currentClub = getClubByKey(clubsBtn, stateBtn.currentClubKey);
         if (!currentClub) {
           return interaction.reply({
@@ -367,13 +356,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
 
       if (interaction.customId === 'add_club') {
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content: 'Only admins or captains can add clubs.',
-            ephemeral: true
-          });
-        }
-
+        // Anyone can add clubs
         const disabledClub = clubsBtn.find((c) => !c.enabled);
         if (!disabledClub) {
           return interaction.reply({
@@ -414,13 +397,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
 
       if (interaction.customId === 'remove_club') {
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content: 'Only admins or captains can remove clubs.',
-            ephemeral: true
-          });
-        }
-
+        // Anyone can remove clubs (with safety checks)
         const currentClub = getClubByKey(clubsBtn, stateBtn.currentClubKey);
         if (!currentClub || !currentClub.enabled) {
           return interaction.reply({
@@ -487,13 +464,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
 
       if (interaction.customId === 'reset_spots') {
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content: 'Only admins or captains can reset spots.',
-            ephemeral: true
-          });
-        }
-
+        // Anyone can reset spots for the current club
         const clubBoard = boardStateBtn[stateBtn.currentClubKey];
         POSITIONS.forEach((p) => {
           clubBoard.spots[p].open = true;
@@ -520,13 +491,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
 
       if (interaction.customId === 'assign_player') {
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content: 'Only admins or captains can assign players.',
-            ephemeral: true
-          });
-        }
-
+        // Anyone can assign players (still must be in VC)
         const voiceChannel = interaction.member?.voice?.channel;
         if (!voiceChannel) {
           return interaction.reply({
@@ -598,7 +563,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           } else {
             return interaction.reply({
               content:
-                'This spot is already taken by someone else. Ask a captain if you need to be moved.',
+                'This spot is already taken by someone else.',
               ephemeral: true
             });
           }
@@ -614,13 +579,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     // Modal submissions (rename club)
     if (interaction.isModalSubmit()) {
       if (interaction.customId === 'rename_club_modal') {
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content: 'Only admins or captains can rename clubs.',
-            ephemeral: true
-          });
-        }
-
+        // Anyone can rename clubs
         const newName = interaction.fields.getTextInputValue('club_name').trim();
         if (!newName) {
           return interaction.reply({
@@ -691,15 +650,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Change which club we're editing in the panel
+      // Change which club we're editing in the panel (anyone can do this)
       if (id === 'club_select') {
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content: 'Only admins or captains can change the club.',
-            ephemeral: true
-          });
-        }
-
         const selectedKey = interaction.values[0];
         const club = getClubByKey(stateSel.clubs, selectedKey);
         if (!club) {
@@ -717,15 +669,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // First step of manager assignment: pick player
+      // First step of manager assignment: pick player (anyone can now)
       if (id.startsWith('assign_player_pick_')) {
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content: 'Only admins or captains can assign players.',
-            ephemeral: true
-          });
-        }
-
         const clubKey = id.substring('assign_player_pick_'.length);
         const club = getClubByKey(stateSel.clubs, clubKey);
         if (!club) {
@@ -750,15 +695,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Second step of manager assignment: pick spot
+      // Second step of manager assignment: pick spot (anyone can now)
       if (id.startsWith('assign_player_pos_')) {
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content: 'Only admins or captains can assign players.',
-            ephemeral: true
-          });
-        }
-
         const parts = id.split('_'); // ['assign', 'player', 'pos', clubKey, userId]
         const clubKey = parts[3];
         const userId = parts[4];
