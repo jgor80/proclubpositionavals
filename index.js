@@ -374,12 +374,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       // Global admin panel (anyone can make it)
       if (cmd === 'spotpanel') {
-        const msg = await interaction.reply({
+        await interaction.reply({
           embeds: [buildEmbedForClub(guildId, state.currentClubKey)],
-          components: buildAdminComponents(guildId, state.currentClubKey),
-          
+          components: buildAdminComponents(guildId, state.currentClubKey)
         });
+
         const msg = await interaction.fetchReply();
+
         state.adminPanelChannelId = interaction.channelId;
         state.adminPanelMessageId = msg.id;
         return;
@@ -1191,7 +1192,7 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
 
       let changed = false;
       for (const pos of POSITIONS) {
-        const slot = clubBoard.spots[pos  ];
+        const slot = clubBoard.spots[pos];
         if (slot && slot.takenBy === userId) {
           slot.open = true;
           slot.takenBy = null;
