@@ -27,7 +27,7 @@ const client = new Client({
 
 /**
  * Dynamic formations: each club can pick one, and we build slots from this.
- * Each array is 11 positions in order (index 0 = GK).
+ * Each array is 11 positions in order (GK first, strikers last).
  */
 const FORMATION_POSITIONS = {
   // 3-at-the-back
@@ -256,209 +256,6 @@ const FORMATION_POSITIONS = {
   ]
 };
 
-// Row layout for each formation: arrays of slot indices (into FORMATION_POSITIONS)
-// From back to front: [GK row], [defence row], [mid rows...], [attack rows...]
-// We render them front-to-back in the embed, so attackers appear on top, GK at bottom.
-const FORMATION_VISUAL_ROWS = {
-  "3-1-4-2": [
-    [0],            // GK
-    [1, 2, 3],      // CB,CB,CB
-    [4],            // CDM
-    [5, 6, 7, 8],   // LM,CM,CM,RM
-    [9, 10]         // ST,ST
-  ],
-  "3-4-1-2": [
-    [0],
-    [1, 2, 3],
-    [4, 5, 6, 7],   // LM,CM,CM,RM
-    [8],            // CAM
-    [9, 10]
-  ],
-  "3-4-2-1": [
-    [0],
-    [1, 2, 3],
-    [4, 5, 6, 7],   // LM,CM,CM,RM
-    [8, 9],         // CAM,CAM
-    [10]            // ST
-  ],
-  "3-4-3": [
-    [0],
-    [1, 2, 3],
-    [4, 5, 6, 7],   // LM,CM,CM,RM
-    [8, 9, 10]      // LW,ST,RW
-  ],
-  "3-5-2": [
-    [0],
-    [1, 2, 3],
-    [4, 5, 6, 7, 8], // LM,CDM,CAM,CDM,RM
-    [9, 10]
-  ],
-
-  "4-1-2-1-2": [
-    [0],
-    [1, 2, 3, 4],   // LB,CB,CB,RB
-    [5],            // CDM
-    [6, 8, 7],      // LM,CAM,RM
-    [9, 10]
-  ],
-  "4-1-2-1-2 (2)": [
-    [0],
-    [1, 2, 3, 4],
-    [5],            // CDM
-    [6, 7],         // CM,CM
-    [8],            // CAM
-    [9, 10]
-  ],
-  "4-1-3-2": [
-    [0],
-    [1, 2, 3, 4],
-    [5],            // CDM
-    [6, 7, 8],      // LM,CM,RM
-    [9, 10]
-  ],
-  "4-1-4-1": [
-    [0],
-    [1, 2, 3, 4],
-    [5],            // CDM
-    [6, 7, 8, 9],   // LM,CM,CM,RM
-    [10]
-  ],
-
-  "4-2-1-3": [
-    [0],
-    [1, 2, 3, 4],
-    [5, 6],         // CDM,CDM
-    [7],            // CAM
-    [8, 9, 10]      // LW,ST,RW
-  ],
-  "4-2-2-2": [
-    [0],
-    [1, 2, 3, 4],
-    [5, 6],         // CDMs
-    [7, 8],         // CAMs
-    [9, 10]
-  ],
-  "4-2-3-1": [
-    [0],
-    [1, 2, 3, 4],
-    [5, 6],         // CDMs
-    [7, 8, 9],      // CAM,CAM,CAM
-    [10]
-  ],
-  "4-2-3-1 (2)": [
-    [0],
-    [1, 2, 3, 4],
-    [5, 6],         // CDMs
-    [7, 8, 9],      // LM,CAM,RM
-    [10]
-  ],
-  "4-2-4": [
-    [0],
-    [1, 2, 3, 4],
-    [5, 6],         // CMs
-    [7, 8, 9, 10]   // LW,ST,ST,RW
-  ],
-
-  "4-3-1-2": [
-    [0],
-    [1, 2, 3, 4],
-    [5, 6, 7],      // CMs
-    [8],            // CAM
-    [9, 10]
-  ],
-  "4-3-2-1": [
-    [0],
-    [1, 2, 3, 4],
-    [5, 6, 7],      // CMs
-    [8, 9],         // CF,CF
-    [10]            // ST
-  ],
-  "4-3-3": [
-    [0],
-    [1, 2, 3, 4],
-    [5, 6, 7],      // CMs
-    [8, 9, 10]      // LW,ST,RW
-  ],
-  "4-3-3 (2)": [
-    [0],
-    [1, 2, 3, 4],
-    [5, 6, 7],      // CDM,CM,CM
-    [8, 9, 10]
-  ],
-  "4-3-3 (3)": [
-    [0],
-    [1, 2, 3, 4],
-    [5, 6, 7],      // CDM,CDM,CM
-    [8, 9, 10]
-  ],
-  "4-3-3 (4)": [
-    [0],
-    [1, 2, 3, 4],
-    [5, 6, 7],      // CM,CAM,CAM
-    [8, 9, 10]
-  ],
-
-  "4-4-1-1 (2)": [
-    [0],
-    [1, 2, 3, 4],
-    [5, 6, 7, 8],   // LM,CM,CM,RM
-    [9],            // CF
-    [10]
-  ],
-  "4-4-2": [
-    [0],
-    [1, 2, 3, 4],
-    [5, 6, 7, 8],   // LM,CM,CM,RM
-    [9, 10]
-  ],
-  "4-4-2 (2)": [
-    [0],
-    [1, 2, 3, 4],
-    [5, 6, 7, 8],   // LM,CDM,CDM,RM
-    [9, 10]
-  ],
-  "4-5-1": [
-    [0],
-    [1, 2, 3, 4],
-    [5, 6, 8, 9],   // LM,CM,CM,RM
-    [7],            // CAM
-    [10]
-  ],
-  "4-5-1 (2)": [
-    [0],
-    [1, 2, 3, 4],
-    [5, 6, 8, 9],   // LM,CDM,CDM,RM
-    [7],            // CAM
-    [10]
-  ],
-
-  "5-2-1-2": [
-    [0],
-    [1, 2, 3, 4, 5], // LWB,CB,CB,CB,RWB
-    [6, 7],          // CMs
-    [8],             // CAM
-    [9, 10]
-  ],
-  "5-2-3": [
-    [0],
-    [1, 2, 3, 4, 5],
-    [6, 7],          // CMs
-    [8, 9, 10]       // LW,ST,RW
-  ],
-  "5-3-2": [
-    [0],
-    [1, 2, 3, 4, 5],
-    [6, 7, 8],       // CMs
-    [9, 10]
-  ],
-  "5-4-1": [
-    [0],
-    [1, 2, 3, 4, 5],
-    [6, 7, 8, 9],    // LM,CM,CM,RM
-    [10]
-  ]
-};
-
 const FORMATION_INFO = {
   // 3-at-the-back
   "3-1-4-2": `Strengths: Very strong through the middle with a back three plus a screening CDM, good for patient build-up and countering central overloads. Weaknesses: Can be exposed in the wide channels if LM/RM don’t track back. Best used when you want two strikers up top and control of the middle third. Key players: Mobile, aggressive CBs; a disciplined CDM who reads play well; high-stamina LM/RM; one link-up ST and one runner in behind.`,
@@ -617,50 +414,6 @@ function getVcPanelByMessage(state, messageId) {
 
 // ---------- UI BUILDERS (per guild) ----------
 
-// Build the text lines that visualize the current formation as a "pitch"
-function buildFormationDisplayLines(clubBoard) {
-  const layout = FORMATION_VISUAL_ROWS[clubBoard.formation];
-  const slots = clubBoard.slots;
-
-  // Fallback: if layout missing for some reason, keep a flat list style
-  if (!layout) {
-    const lines = [];
-    for (let i = slots.length - 1; i >= 0; i--) {
-      const slot = slots[i];
-      const emoji = slot.open ? '🟢' : '🔴';
-      let text;
-      if (slot.open) text = 'OPEN';
-      else if (slot.takenBy) text = `<@${slot.takenBy}>`;
-      else text = 'TAKEN';
-      lines.push(`${emoji} ${slot.label}: ${text}`);
-    }
-    return lines;
-  }
-
-  const lines = [];
-  // We want to show attackers at the top, GK at the bottom → reverse the row order
-  const rowsToRender = [...layout].reverse();
-
-  for (const row of rowsToRender) {
-    const cells = row.map((idx) => {
-      const slot = slots[idx];
-      const emoji = slot.open ? '🟢' : '🔴';
-
-      let status;
-      if (slot.open) status = 'OPEN';
-      else if (slot.takenBy) status = `<@${slot.takenBy}>`;
-      else status = 'TAKEN';
-
-      return `${emoji} ${slot.label}: ${status}`;
-    });
-
-    // Add some spacing between positions on the same line
-    lines.push(cells.join('   '));
-  }
-
-  return lines;
-}
-
 function buildEmbedForClub(guildId, clubKey) {
   const state = getGuildState(guildId);
   if (!state) throw new Error('No state for guild');
@@ -672,18 +425,21 @@ function buildEmbedForClub(guildId, clubKey) {
   const clubBoard = boardState[clubKey];
   if (!clubBoard) throw new Error(`No board state for club key: ${clubKey}`);
 
-  // Build the formation-shaped visualization
-  const vizLines = buildFormationDisplayLines(clubBoard);
-
-  const description =
-    `**Club:** ${club.name}\n\n` +
-    '```md\n' +
-    vizLines.join('\n') +
-    '\n```';
+  // Show from top of pitch (strikers) down to GK
+  const lines = [];
+  for (let i = clubBoard.slots.length - 1; i >= 0; i--) {
+    const slot = clubBoard.slots[i];
+    const emoji = slot.open ? '🟢' : '🔴';
+    let text;
+    if (slot.open) text = 'OPEN';
+    else if (slot.takenBy) text = `TAKEN by <@${slot.takenBy}>`;
+    else text = 'TAKEN';
+    lines.push(`**${slot.label}** – ${emoji} ${text}`);
+  }
 
   const embed = new EmbedBuilder()
     .setTitle(`Club Spots – ${clubBoard.formation}`)
-    .setDescription(description)
+    .setDescription(`**Club:** ${club.name}\n\n${lines.join('\n')}`)
     .setFooter({
       text:
         'Players: click a spot to claim. Managers can assign/move/remove players and change formations.'
@@ -701,7 +457,7 @@ function buildEmbedForClub(guildId, clubKey) {
 }
 
 // Buttons for a specific club, based on its current formation slots
-// Ordered from top of pitch (attack) down to GK
+// Also ordered from top of pitch (attack) down to GK
 function buildButtons(guildId, clubKey) {
   const state = getGuildState(guildId);
   const { boardState } = state;
@@ -777,7 +533,7 @@ function buildViewerClubSelect(guildId, selectedKey) {
 // Admin/VC panel components for a specific club
 // Row 1: club select
 // Row 2: control buttons (Rename, Add, Remove, Player Tools, Formation)
-// Rows 3-5+: dynamic position buttons from formation
+// Rows 3-5: dynamic position buttons from formation
 function buildAdminComponents(guildId, clubKey) {
   const clubRow = buildClubSelect(guildId, clubKey);
 
@@ -1352,7 +1108,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         const formationNames = Object.keys(FORMATION_POSITIONS);
 
-        // Discord: max 25 options per select, max 5 rows; we have 29 formations → 2 pages
+        // Discord: max 25 options per select, max 5 rows; we have 29 formations
         const rows = [];
         let batch = [];
         let pageIndex = 1;
@@ -1604,7 +1360,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        // Build slot options with numbering if duplicate labels (top → bottom)
+        // Build slot options with numbering if duplicate labels
         const labelCounts = {};
         clubBoard.slots.forEach((slot) => {
           labelCounts[slot.label] = (labelCounts[slot.label] || 0) + 1;
@@ -1783,7 +1539,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        // Build slot options with numbering if duplicate labels (top → bottom)
+        // Build slot options with numbering if duplicate labels
         const labelCounts = {};
         clubBoard.slots.forEach((slot) => {
           labelCounts[slot.label] = (labelCounts[slot.label] || 0) + 1;
@@ -1945,4 +1701,3 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
 // ---------- LOGIN ----------
 
 client.login(token);
-
