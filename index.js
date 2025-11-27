@@ -31,273 +31,273 @@ const client = new Client({
  */
 const FORMATION_POSITIONS = {
   // 3-at-the-back
-  "3-1-4-2": [
-    "GK",
-    "CB","CB","CB",
-    "CDM",
-    "LM","CM","CM","RM",
-    "ST","ST"
+  '3-1-4-2': [
+    'GK',
+    'CB', 'CB', 'CB',
+    'CDM',
+    'LM', 'CM', 'CM', 'RM',
+    'ST', 'ST'
   ],
 
-  "3-4-1-2": [
-    "GK",
-    "CB","CB","CB",
-    "LM","CM","CM","RM",
-    "CAM",
-    "ST","ST"
+  '3-4-1-2': [
+    'GK',
+    'CB', 'CB', 'CB',
+    'LM', 'CM', 'CM', 'RM',
+    'CAM',
+    'ST', 'ST'
   ],
 
-  "3-4-2-1": [
-    "GK",
-    "CB","CB","CB",
-    "LM","CM","CM","RM",
-    "CAM","CAM",
-    "ST"
+  '3-4-2-1': [
+    'GK',
+    'CB', 'CB', 'CB',
+    'LM', 'CM', 'CM', 'RM',
+    'CAM', 'CAM',
+    'ST'
   ],
 
-  "3-4-3": [
-    "GK",
-    "CB","CB","CB",
-    "LM","CM","CM","RM",
-    "LW","ST","RW"
+  '3-4-3': [
+    'GK',
+    'CB', 'CB', 'CB',
+    'LM', 'CM', 'CM', 'RM',
+    'LW', 'ST', 'RW'
   ],
 
-  "3-5-2": [
-    "GK",
-    "CB","CB","CB",
-    "LM","CDM","CAM","CDM","RM",
-    "ST","ST"
+  '3-5-2': [
+    'GK',
+    'CB', 'CB', 'CB',
+    'LM', 'CDM', 'CAM', 'CDM', 'RM',
+    'ST', 'ST'
   ],
 
   // 4-at-the-back, 4-1-x-x and 4-2-x-x shapes
-  "4-1-2-1-2": [          // 41212 (wide)
-    "GK",
-    "LB","CB","CB","RB",
-    "CDM",
-    "LM","RM",
-    "CAM",
-    "ST","ST"
+  '4-1-2-1-2': [ // 41212 (wide)
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'CDM',
+    'LM', 'RM',
+    'CAM',
+    'ST', 'ST'
   ],
 
-  "4-1-2-1-2 (2)": [      // 41212(2) (narrow)
-    "GK",
-    "LB","CB","CB","RB",
-    "CDM",
-    "CM","CM",
-    "CAM",
-    "ST","ST"
+  '4-1-2-1-2 (2)': [ // 41212(2) (narrow)
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'CDM',
+    'CM', 'CM',
+    'CAM',
+    'ST', 'ST'
   ],
 
-  "4-1-3-2": [            // 4132
-    "GK",
-    "LB","CB","CB","RB",
-    "CDM",
-    "LM","CM","RM",
-    "ST","ST"
+  '4-1-3-2': [ // 4132
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'CDM',
+    'LM', 'CM', 'RM',
+    'ST', 'ST'
   ],
 
-  "4-1-4-1": [            // 4141
-    "GK",
-    "LB","CB","CB","RB",
-    "CDM",
-    "LM","CM","CM","RM",
-    "ST"
+  '4-1-4-1': [ // 4141
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'CDM',
+    'LM', 'CM', 'CM', 'RM',
+    'ST'
   ],
 
-  "4-2-1-3": [            // 4213
-    "GK",
-    "LB","CB","CB","RB",
-    "CDM","CDM",
-    "CAM",
-    "LW","ST","RW"
+  '4-2-1-3': [ // 4213
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'CDM', 'CDM',
+    'CAM',
+    'LW', 'ST', 'RW'
   ],
 
-  "4-2-2-2": [            // 4222
-    "GK",
-    "LB","CB","CB","RB",
-    "CDM","CDM",
-    "CAM","CAM",
-    "ST","ST"
+  '4-2-2-2': [ // 4222
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'CDM', 'CDM',
+    'CAM', 'CAM',
+    'ST', 'ST'
   ],
 
-  "4-2-3-1": [            // 4231 (narrow, 3 CAMs)
-    "GK",
-    "LB","CB","CB","RB",
-    "CDM","CDM",
-    "CAM","CAM","CAM",
-    "ST"
+  '4-2-3-1': [ // 4231 (narrow, 3 CAMs)
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'CDM', 'CDM',
+    'CAM', 'CAM', 'CAM',
+    'ST'
   ],
 
-  "4-2-3-1 (2)": [        // 4231(2) (wide: LM/RM + CAM)
-    "GK",
-    "LB","CB","CB","RB",
-    "CDM","CDM",
-    "LM","CAM","RM",
-    "ST"
+  '4-2-3-1 (2)': [ // 4231(2) (wide: LM/RM + CAM)
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'CDM', 'CDM',
+    'LM', 'CAM', 'RM',
+    'ST'
   ],
 
-  "4-2-4": [              // 424
-    "GK",
-    "LB","CB","CB","RB",
-    "CM","CM",
-    "LW","ST","ST","RW"
+  '4-2-4': [ // 424
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'CM', 'CM',
+    'LW', 'ST', 'ST', 'RW'
   ],
 
   // 4-3-x-x
-  "4-3-1-2": [            // 4312
-    "GK",
-    "LB","CB","CB","RB",
-    "CM","CM","CM",
-    "CAM",
-    "ST","ST"
+  '4-3-1-2': [ // 4312
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'CM', 'CM', 'CM',
+    'CAM',
+    'ST', 'ST'
   ],
 
-  "4-3-2-1": [            // 4321 (Christmas tree)
-    "GK",
-    "LB","CB","CB","RB",
-    "CM","CM","CM",
-    "CF","CF",
-    "ST"
+  '4-3-2-1': [ // 4321 (Christmas tree)
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'CM', 'CM', 'CM',
+    'CF', 'CF',
+    'ST'
   ],
 
-  "4-3-3": [              // 433 base – classic FUT layout
-    "GK",
-    "LB","CB","CB","RB",
-    "CM","CM","CM",
-    "LW","ST","RW"
+  '4-3-3': [ // 433 base – classic FUT layout
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'CM', 'CM', 'CM',
+    'LW', 'ST', 'RW'
   ],
 
-  "4-3-3 (2)": [          // 433(2) – 1 CDM + 2 CM
-    "GK",
-    "LB","CB","CB","RB",
-    "CDM","CM","CM",
-    "LW","ST","RW"
+  '4-3-3 (2)': [ // 433(2) – 1 CDM + 2 CM
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'CDM', 'CM', 'CM',
+    'LW', 'ST', 'RW'
   ],
 
-  "4-3-3 (3)": [          // 433(3) – more defensive, double pivot
-    "GK",
-    "LB","CB","CB","RB",
-    "CDM","CDM","CM",
-    "LW","ST","RW"
+  '4-3-3 (3)': [ // 433(3) – more defensive, double pivot
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'CDM', 'CDM', 'CM',
+    'LW', 'ST', 'RW'
   ],
 
-  "4-3-3 (4)": [          // 433(4) – more attacking, 2 CAM
-    "GK",
-    "LB","CB","CB","RB",
-    "CM","CAM","CAM",
-    "LW","ST","RW"
+  '4-3-3 (4)': [ // 433(4) – more attacking, 2 CAM
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'CM', 'CAM', 'CAM',
+    'LW', 'ST', 'RW'
   ],
 
   // 4-4-x-x & 4-5-x
-  "4-4-1-1 (2)": [        // 4411(2)
-    "GK",
-    "LB","CB","CB","RB",
-    "LM","CM","CM","RM",
-    "CF",
-    "ST"
+  '4-4-1-1 (2)': [ // 4411(2)
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'LM', 'CM', 'CM', 'RM',
+    'CF',
+    'ST'
   ],
 
-  "4-4-2": [              // 442
-    "GK",
-    "LB","CB","CB","RB",
-    "LM","CM","CM","RM",
-    "ST","ST"
+  '4-4-2': [ // 442
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'LM', 'CM', 'CM', 'RM',
+    'ST', 'ST'
   ],
 
-  "4-4-2 (2)": [          // 442(2) – holding, double pivot
-    "GK",
-    "LB","CB","CB","RB",
-    "LM","CDM","CDM","RM",
-    "ST","ST"
+  '4-4-2 (2)': [ // 442(2) – holding, double pivot
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'LM', 'CDM', 'CDM', 'RM',
+    'ST', 'ST'
   ],
 
-  "4-5-1": [              // 451 – more attacking 4-5-1
-    "GK",
-    "LB","CB","CB","RB",
-    "LM","CM","CAM","CM","RM",
-    "ST"
+  '4-5-1': [ // 451 – more attacking 4-5-1
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'LM', 'CM', 'CAM', 'CM', 'RM',
+    'ST'
   ],
 
-  "4-5-1 (2)": [          // 451(2) – more defensive, double pivot
-    "GK",
-    "LB","CB","CB","RB",
-    "LM","CDM","CAM","CDM","RM",
-    "ST"
+  '4-5-1 (2)': [ // 451(2) – more defensive, double pivot
+    'GK',
+    'LB', 'CB', 'CB', 'RB',
+    'LM', 'CDM', 'CAM', 'CDM', 'RM',
+    'ST'
   ],
 
   // 5-at-the-back
-  "5-2-1-2": [            // 5212
-    "GK",
-    "LWB","CB","CB","CB","RWB",
-    "CM","CM",
-    "CAM",
-    "ST","ST"
+  '5-2-1-2': [ // 5212
+    'GK',
+    'LWB', 'CB', 'CB', 'CB', 'RWB',
+    'CM', 'CM',
+    'CAM',
+    'ST', 'ST'
   ],
 
-  "5-2-3": [              // 523
-    "GK",
-    "LWB","CB","CB","CB","RWB",
-    "CM","CM",
-    "LW","ST","RW"
+  '5-2-3': [ // 523
+    'GK',
+    'LWB', 'CB', 'CB', 'CB', 'RWB',
+    'CM', 'CM',
+    'LW', 'ST', 'RW'
   ],
 
-  "5-3-2": [              // 532
-    "GK",
-    "LWB","CB","CB","CB","RWB",
-    "CM","CM","CM",
-    "ST","ST"
+  '5-3-2': [ // 532
+    'GK',
+    'LWB', 'CB', 'CB', 'CB', 'RWB',
+    'CM', 'CM', 'CM',
+    'ST', 'ST'
   ],
 
-  "5-4-1": [              // 541
-    "GK",
-    "LWB","CB","CB","CB","RWB",
-    "LM","CM","CM","RM",
-    "ST"
+  '5-4-1': [ // 541
+    'GK',
+    'LWB', 'CB', 'CB', 'CB', 'RWB',
+    'LM', 'CM', 'CM', 'RM',
+    'ST'
   ]
 };
 
 const FORMATION_INFO = {
   // 3-at-the-back
-  "3-1-4-2": `Strengths: Very strong through the middle with a back three plus a screening CDM, good for patient build-up and countering central overloads. Weaknesses: Can be exposed in the wide channels if LM/RM don’t track back. Best used when you want two strikers up top and control of the middle third. Key players: Mobile, aggressive CBs; a disciplined CDM who reads play well; high-stamina LM/RM; one link-up ST and one runner in behind.`,
-  "3-4-1-2": `Strengths: Central overload with a CAM behind two strikers, ideal for through balls and quick combinations. Weaknesses: Flanks can be vulnerable vs teams with very attacking fullbacks or wide wingers. Best used when you have a playmaking CAM and two complementary forwards. Key players: Ball-playing CBs, box-to-box CMs, creative CAM, one target ST and one pacey ST.`,
-  "3-4-2-1": `Strengths: Very strong between the lines with two CAMs/CFs behind a lone ST, great for tiki-taka and short passing. Weaknesses: Only one true striker and no classic wingers, so crosses are less threatening. Best used when you have two creative attackers who like to drift and combine. Key players: Composed CBs, hardworking CM pair, two technical CAMs, a complete ST who can hold up and finish.`,
-  "3-4-3": `Strengths: Super aggressive front three with wide forwards, great for pressing and fast transitions. Weaknesses: Midfield can be outnumbered and wingbacks must work hard both ways. Best used when you want to swarm the opponent’s back line and play direct. Key players: Fast LW/RW who can score, physical CBs, energetic CMs, clinical ST.`,
-  "3-5-2": `Strengths: Massive control in midfield with five across and two STs, good for slow build-up or long spells of possession. Weaknesses: Width depends heavily on LM/RM; if they don’t track back, flanks are exposed. Best used when you have strong central players and want to dominate the middle. Key players: Stamina monsters at LM/RM, two-way CDMs, creative CAM, a target ST plus a runner.`,
+  '3-1-4-2': 'Strengths: Very strong through the middle with a back three plus a screening CDM, good for patient build-up and countering central overloads. Weaknesses: Can be exposed in the wide channels if LM/RM don’t track back. Best used when you want two strikers up top and control of the middle third. Key players: Mobile, aggressive CBs; a disciplined CDM who reads play well; high-stamina LM/RM; one link-up ST and one runner in behind.',
+  '3-4-1-2': 'Strengths: Central overload with a CAM behind two strikers, ideal for through balls and quick combinations. Weaknesses: Flanks can be vulnerable vs teams with very attacking fullbacks or wide wingers. Best used when you have a playmaking CAM and two complementary forwards. Key players: Ball-playing CBs, box-to-box CMs, creative CAM, one target ST and one pacey ST.',
+  '3-4-2-1': 'Strengths: Very strong between the lines with two CAMs/CFs behind a lone ST, great for tiki-taka and short passing. Weaknesses: Only one true striker and no classic wingers, so crosses are less threatening. Best used when you have two creative attackers who like to drift and combine. Key players: Composed CBs, hardworking CM pair, two technical CAMs, a complete ST who can hold up and finish.',
+  '3-4-3': 'Strengths: Super aggressive front three with wide forwards, great for pressing and fast transitions. Weaknesses: Midfield can be outnumbered and wingbacks must work hard both ways. Best used when you want to swarm the opponent’s back line and play direct. Key players: Fast LW/RW who can score, physical CBs, energetic CMs, clinical ST.',
+  '3-5-2': 'Strengths: Massive control in midfield with five across and two STs, good for slow build-up or long spells of possession. Weaknesses: Width depends heavily on LM/RM; if they don’t track back, flanks are exposed. Best used when you have strong central players and want to dominate the middle. Key players: Stamina monsters at LM/RM, two-way CDMs, creative CAM, a target ST plus a runner.',
 
   // 4-at-the-back, 4-1-x-x and 4-2-x-x shapes
-  "4-1-2-1-2": `Strengths: Narrow diamond that overloads the center and supports two STs, good for quick one-twos and through balls. Weaknesses: Very little natural width, so you can struggle vs compact low blocks. Best used when your fullbacks like to bomb forward and your CAM is a star. Key players: Overlapping LB/RB, strong CDM, high-vision CAM, two strikers with good off-the-ball movement.`,
-  "4-1-2-1-2 (2)": `Strengths: Even more compact diamond with CM/CM, great for short passing and central dominance. Weaknesses: Predictable if opponents clog the middle; relies on fullbacks for width. Best used with technically sound CMs and a creative CAM. Key players: Press-resistant CMs, smart CDM, playmaking CAM, versatile STs who can drop in.`,
-  "4-1-3-2": `Strengths: Solid single pivot CDM behind an attacking three and two STs, good for pressing high and playing direct. Weaknesses: Only one holding mid, so counters through the middle can be dangerous. Best used when you trust your CDM and want numbers in attack. Key players: Strong CDM, balanced LM/RM, CAM/CM with vision, two aggressive strikers.`,
-  "4-1-4-1": `Strengths: Very stable defensively with a CDM shielding the back four and a compact midfield line of four. Weaknesses: Lone ST can get isolated if wide players don’t join quickly. Best used when protecting a lead or playing vs stronger teams. Key players: Disciplined CDM, high-work-rate wide mids, box-to-box CMs, a complete ST who can hold up play.`,
-  "4-2-1-3": `Strengths: Double pivot protects the back four while CAM and front three attack, great balance between defense and offense. Weaknesses: CAM can be crowded out if team doesn’t create wide overloads. Best used with quick wingers and a strong central CAM. Key players: Two intelligent CDMs, creative CAM, pacey LW/RW, clinical ST.`,
-  "4-2-2-2": `Strengths: Very strong in central channels with two CAMs and two STs, good for intricate passing and central overloads. Weaknesses: Flanks can be open; you rely heavily on fullbacks for width. Best used when your fullbacks are very attacking and your CAMs are creative. Key players: Two disciplined CDMs, technical CAMs, overlapping LB/RB, two deadly finishers.`,
-  "4-2-3-1": `Strengths: One of the most balanced shapes; double pivot for stability plus three attackers behind a ST. Great for possession or counter-attacks. Weaknesses: Wide CAMs must track back or fullbacks get overloaded. Best used when you have a standout CAM and versatile wide attackers. Key players: All-round CDM/CM pair, playmaking central CAM, agile wide CAMs, complete ST.`,
-  "4-2-3-1 (2)": `Strengths: LM/RM + CAM behind a ST gives natural width and a central creator, good for crosses and cutbacks. Weaknesses: If LM/RM don’t work defensively, you can be stretched wide. Best used when you like to attack through the wings. Key players: Stamina-heavy wide mids, solid CDM duo, creative CAM, strong aerial ST.`,
-  "4-2-4": `Strengths: Extremely aggressive with four forwards, ideal for all-out attack and late-game comebacks. Weaknesses: Midfield is thin; you’ll be vulnerable to counters and outnumbered centrally. Best used when chasing a goal or vs weaker opponents. Key players: Two high-energy CMs, fast LW/RW, poacher ST plus target ST.`,
+  '4-1-2-1-2': 'Strengths: Narrow diamond that overloads the center and supports two STs, good for quick one-twos and through balls. Weaknesses: Very little natural width, so you can struggle vs compact low blocks. Best used when your fullbacks like to bomb forward and your CAM is a star. Key players: Overlapping LB/RB, strong CDM, high-vision CAM, two strikers with good off-the-ball movement.',
+  '4-1-2-1-2 (2)': 'Strengths: Even more compact diamond with CM/CM, great for short passing and central dominance. Weaknesses: Predictable if opponents clog the middle; relies on fullbacks for width. Best used with technically sound CMs and a creative CAM. Key players: Press-resistant CMs, smart CDM, playmaking CAM, versatile STs who can drop in.',
+  '4-1-3-2': 'Strengths: Solid single pivot CDM behind an attacking three and two STs, good for pressing high and playing direct. Weaknesses: Only one holding mid, so counters through the middle can be dangerous. Best used when you trust your CDM and want numbers in attack. Key players: Strong CDM, balanced LM/RM, CAM/CM with vision, two aggressive strikers.',
+  '4-1-4-1': 'Strengths: Very stable defensively with a CDM shielding the back four and a compact midfield line of four. Weaknesses: Lone ST can get isolated if wide players don’t join quickly. Best used when protecting a lead or playing vs stronger teams. Key players: Disciplined CDM, high-work-rate wide mids, box-to-box CMs, a complete ST who can hold up play.',
+  '4-2-1-3': 'Strengths: Double pivot protects the back four while CAM and front three attack, great balance between defense and offense. Weaknesses: CAM can be crowded out if team doesn’t create wide overloads. Best used with quick wingers and a strong central CAM. Key players: Two intelligent CDMs, creative CAM, pacey LW/RW, clinical ST.',
+  '4-2-2-2': 'Strengths: Very strong in central channels with two CAMs and two STs, good for intricate passing and central overloads. Weaknesses: Flanks can be open; you rely heavily on fullbacks for width. Best used when your fullbacks are very attacking and your CAMs are creative. Key players: Two disciplined CDMs, technical CAMs, overlapping LB/RB, two deadly finishers.',
+  '4-2-3-1': 'Strengths: One of the most balanced shapes; double pivot for stability plus three attackers behind a ST. Great for possession or counter-attacks. Weaknesses: Wide CAMs must track back or fullbacks get overloaded. Best used when you have a standout CAM and versatile wide attackers. Key players: All-round CDM/CM pair, playmaking central CAM, agile wide CAMs, complete ST.',
+  '4-2-3-1 (2)': 'Strengths: LM/RM + CAM behind a ST gives natural width and a central creator, good for crosses and cutbacks. Weaknesses: If LM/RM don’t work defensively, you can be stretched wide. Best used when you like to attack through the wings. Key players: Stamina-heavy wide mids, solid CDM duo, creative CAM, strong aerial ST.',
+  '4-2-4': 'Strengths: Extremely aggressive with four forwards, ideal for all-out attack and late-game comebacks. Weaknesses: Midfield is thin; you’ll be vulnerable to counters and outnumbered centrally. Best used when chasing a goal or vs weaker opponents. Key players: Two high-energy CMs, fast LW/RW, poacher ST plus target ST.',
 
   // 4-3-x-x
-  "4-3-1-2": `Strengths: Three CMs plus a CAM behind two STs; strong centrally with a natural link between mid and attack. Weaknesses: No natural width, so fullbacks must push high. Best used when your midfielders are strong passers and can control tempo. Key players: One holding CM, two box-to-box CMs, creative CAM, two complementary strikers.`,
-  "4-3-2-1": `Strengths: “Christmas tree” structure; two CFs behind a lone ST for heavy central overloads and intricate build-up. Weaknesses: Almost no width; can feel cramped versus low blocks. Best used when your attackers prefer to play between lines rather than hugging the touchline. Key players: Three balanced CMs, two creative CFs, a complete ST.`,
-  "4-3-3": `Strengths: Classic all-round shape with three CMs and a front three; great for pressing, possession, and flexible attacking patterns. Weaknesses: Middle CM can get overworked if wide forwards don’t defend. Best used when you have strong wingers and a solid midfield triangle. Key players: One holding CM, two shuttling CMs, pacey LW/RW, reliable ST.`,
-  "4-3-3 (2)": `Strengths: CDM + two CMs give extra protection while keeping a dangerous front three; ideal for balanced play. Weaknesses: If CMs are too defensive, you can lack creativity. Best used when one player excels as a pure CDM. Key players: Destroyer-type CDM, two box-to-box CMs, fast wingers, clinical ST.`,
-  "4-3-3 (3)": `Strengths: Double pivot plus one CM makes it very solid defensively, great for sitting deeper and countering. Weaknesses: Can feel conservative; fewer runners from midfield into the box. Best used vs stronger teams or fast counters. Key players: Two disciplined CDMs, a linking CM, pacey LW/RW, lone ST who can exploit space.`,
-  "4-3-3 (4)": `Strengths: CM + two CAMs behind a front three makes this very attacking and creative. Weaknesses: Defensive cover in midfield is lighter; can be risky if fullbacks push too high. Best used when you want to dominate possession in the final third. Key players: One hard-working CM, two creative CAM types, flair LW/RW, top-tier finisher up front.`,
+  '4-3-1-2': 'Strengths: Three CMs plus a CAM behind two STs; strong centrally with a natural link between mid and attack. Weaknesses: No natural width, so fullbacks must push high. Best used when your midfielders are strong passers and can control tempo. Key players: One holding CM, two box-to-box CMs, creative CAM, two complementary strikers.',
+  '4-3-2-1': 'Strengths: “Christmas tree” structure; two CFs behind a lone ST for heavy central overloads and intricate build-up. Weaknesses: Almost no width; can feel cramped versus low blocks. Best used when your attackers prefer to play between lines rather than hugging the touchline. Key players: Three balanced CMs, two creative CFs, a complete ST.',
+  '4-3-3': 'Strengths: Classic all-round shape with three CMs and a front three; great for pressing, possession, and flexible attacking patterns. Weaknesses: Middle CM can get overworked if wide forwards don’t defend. Best used when you have strong wingers and a solid midfield triangle. Key players: One holding CM, two shuttling CMs, pacey LW/RW, reliable ST.',
+  '4-3-3 (2)': 'Strengths: CDM + two CMs give extra protection while keeping a dangerous front three; ideal for balanced play. Weaknesses: If CMs are too defensive, you can lack creativity. Best used when one player excels as a pure CDM. Key players: Destroyer-type CDM, two box-to-box CMs, fast wingers, clinical ST.',
+  '4-3-3 (3)': 'Strengths: Double pivot plus one CM makes it very solid defensively, great for sitting deeper and countering. Weaknesses: Can feel conservative; fewer runners from midfield into the box. Best used vs stronger teams or fast counters. Key players: Two disciplined CDMs, a linking CM, pacey LW/RW, lone ST who can exploit space.',
+  '4-3-3 (4)': 'Strengths: CM + two CAMs behind a front three makes this very attacking and creative. Weaknesses: Defensive cover in midfield is lighter; can be risky if fullbacks push too high. Best used when you want to dominate possession in the final third. Key players: One hard-working CM, two creative CAM types, flair LW/RW, top-tier finisher up front.',
 
   // 4-4-x-x & 4-5-x
-  "4-4-1-1 (2)": `Strengths: Solid 4-4-2 base with a CF dropping off the ST for link-up play, good balance between defense and attack. Weaknesses: Wide mids must work hard or your fullbacks get exposed. Best used when you have a second striker good at creating and scoring. Key players: Two balanced CMs, high-work-rate LM/RM, creative CF, focal-point ST.`,
-  "4-4-2": `Strengths: Very simple, very balanced: two banks of four and two STs, great for counters and crosses. Weaknesses: Outnumbered by 3 or 5-man midfields; can struggle to progress the ball centrally. Best used with strong wide players and two strikers who link well. Key players: Disciplined CBs, LM/RM with pace and crossing, one target ST and one runner.`,
-  "4-4-2 (2)": `Strengths: Double CDM gives excellent central protection while keeping two STs up top. Weaknesses: Less creativity from midfield; you’ll rely on flanks and long balls. Best used to protect a lead but still have counter threat. Key players: Two strong CDMs, robust CBs, hard-working LM/RM, quick strikers.`,
-  "4-5-1": `Strengths: Very strong midfield presence with a CAM; good for controlling possession and firing late runs into the box. Weaknesses: Lone ST can be isolated if wide players stay too deep. Best used when your CAM is a main attacking outlet. Key players: Two solid CMs, creative CAM, LM/RM who can cut inside, complete ST.`,
-  "4-5-1 (2)": `Strengths: Double pivot CDMs + CAM makes it defensively secure while still having a creator. Weaknesses: Can feel passive if LM/RM and CAM don’t push high. Best used when you want to sit deeper but still threaten on counters through the middle. Key players: Two defensive-minded CDMs, high-energy LM/RM, clever CAM, pacey ST.`,
+  '4-4-1-1 (2)': 'Strengths: Solid 4-4-2 base with a CF dropping off the ST for link-up play, good balance between defense and attack. Weaknesses: Wide mids must work hard or your fullbacks get exposed. Best used when you have a second striker good at creating and scoring. Key players: Two balanced CMs, high-work-rate LM/RM, creative CF, focal-point ST.',
+  '4-4-2': 'Strengths: Very simple, very balanced: two banks of four and two STs, great for counters and crosses. Weaknesses: Outnumbered by 3 or 5-man midfields; can struggle to progress the ball centrally. Best used with strong wide players and two strikers who link well. Key players: Disciplined CBs, LM/RM with pace and crossing, one target ST and one runner.',
+  '4-4-2 (2)': 'Strengths: Double CDM gives excellent central protection while keeping two STs up top. Weaknesses: Less creativity from midfield; you’ll rely on flanks and long balls. Best used to protect a lead but still have counter threat. Key players: Two strong CDMs, robust CBs, hard-working LM/RM, quick strikers.',
+  '4-5-1': 'Strengths: Very strong midfield presence with a CAM; good for controlling possession and firing late runs into the box. Weaknesses: Lone ST can be isolated if wide players stay too deep. Best used when your CAM is a main attacking outlet. Key players: Two solid CMs, creative CAM, LM/RM who can cut inside, complete ST.',
+  '4-5-1 (2)': 'Strengths: Double pivot CDMs + CAM makes it defensively secure while still having a creator. Weaknesses: Can feel passive if LM/RM and CAM don’t push high. Best used when you want to sit deeper but still threaten on counters through the middle. Key players: Two defensive-minded CDMs, high-energy LM/RM, clever CAM, pacey ST.',
 
   // 5-at-the-back
-  "5-2-1-2": `Strengths: Three CBs plus wingbacks and a CAM behind two STs; very secure at the back but still dangerous centrally. Weaknesses: Can be pinned deep if wingbacks are slow or too defensive. Best used vs strong opponents or when playing on the counter. Key players: Quick LWB/RWB, aerially dominant CBs, two-way CMs, creative CAM, two strikers who can exploit space.`,
-  "5-2-3": `Strengths: Wingbacks plus a front three make this great for wide counters; very solid defensively. Weaknesses: Only two CMs, so you can be overrun centrally. Best used when your wingers and wingbacks are very fast. Key players: Pace merchant LWB/RWB, mobile CB trio, hard-working CMs, direct LW/RW, fast ST.`,
-  "5-3-2": `Strengths: Extremely solid with three CBs and three CMs plus two STs; tough to break down while still having a front two. Weaknesses: Width relies fully on wingbacks and can be slow to transition if CMs are too defensive. Best used when protecting leads or playing pragmatic football. Key players: Strong CBs, tireless wingbacks, balanced midfield three, two strikers who can hold up and finish.`,
-  "5-4-1": `Strengths: Very deep and compact, ideal for parking the bus or absorbing pressure. Weaknesses: Limited attacking options with one ST and deep wide mids. Best used when you’re outmatched and playing for counters or set pieces. Key players: Dominant CB trio, disciplined wingbacks, hard-working LM/RM, a lone ST who can win duels and hold the ball up.`
+  '5-2-1-2': 'Strengths: Three CBs plus wingbacks and a CAM behind two STs; very secure at the back but still dangerous centrally. Weaknesses: Can be pinned deep if wingbacks are slow or too defensive. Best used vs strong opponents or when playing on the counter. Key players: Quick LWB/RWB, aerially dominant CBs, two-way CMs, creative CAM, two strikers who can exploit space.',
+  '5-2-3': 'Strengths: Wingbacks plus a front three make this great for wide counters; very solid defensively. Weaknesses: Only two CMs, so you can be overrun centrally. Best used when your wingers and wingbacks are very fast. Key players: Pace merchant LWB/RWB, mobile CB trio, hard-working CMs, direct LW/RW, fast ST.',
+  '5-3-2': 'Strengths: Extremely solid with three CBs and three CMs plus two STs; tough to break down while still having a front two. Weaknesses: Width relies fully on wingbacks and can be slow to transition if CMs are too defensive. Best used when protecting leads or playing pragmatic football. Key players: Strong CBs, tireless wingbacks, balanced midfield three, two strikers who can hold up and finish.',
+  '5-4-1': 'Strengths: Very deep and compact, ideal for parking the bus or absorbing pressure. Weaknesses: Limited attacking options with one ST and deep wide mids. Best used when you’re outmatched and playing for counters or set pieces. Key players: Dominant CB trio, disciplined wingbacks, hard-working LM/RM, a lone ST who can win duels and hold the ball up.'
 };
 
-const DEFAULT_FORMATION = "4-3-3";
+const DEFAULT_FORMATION = '4-3-3';
 
 // Default club slots per guild; names are editable from the panel
 // Max clubs = 5
@@ -333,7 +333,8 @@ function cloneDefaultClubs() {
 }
 
 function createEmptyBoardForFormation(formationName) {
-  const positions = FORMATION_POSITIONS[formationName] || FORMATION_POSITIONS[DEFAULT_FORMATION];
+  const positions =
+    FORMATION_POSITIONS[formationName] || FORMATION_POSITIONS[DEFAULT_FORMATION];
   return {
     formation: formationName,
     slots: positions.map((label) => ({
@@ -386,6 +387,23 @@ function getClubByKey(clubs, key) {
   return clubs.find((c) => c.key === key);
 }
 
+// Classify a position into a "zone" for grouping
+function getPositionZone(label) {
+  if (label === 'GK') return 'GK';
+  if (['CB', 'LB', 'RB', 'LWB', 'RWB'].includes(label)) return 'DEF';
+  if (['ST', 'CF', 'LW', 'RW'].includes(label)) return 'ATT';
+  return 'MID'; // CM, CDM, CAM, LM, RM etc.
+}
+
+// Color code embeds based on formation type
+function getFormationColor(formationName) {
+  if (!formationName) return 0x2b2d31; // default dark
+  if (formationName.startsWith('3-')) return 0xffd166; // 3-at-back
+  if (formationName.startsWith('4-')) return 0x06d6a0; // 4-at-back
+  if (formationName.startsWith('5-')) return 0x118ab2; // 5-at-back
+  return 0x2b2d31;
+}
+
 // Admins or roles with "captain", "manager", "owner", or "media" in the name
 // These are allowed to assign/move/remove players and change formations
 function isManager(member) {
@@ -425,21 +443,46 @@ function buildEmbedForClub(guildId, clubKey) {
   const clubBoard = boardState[clubKey];
   if (!clubBoard) throw new Error(`No board state for club key: ${clubKey}`);
 
-  // Show from top of pitch (strikers) down to GK
-  const lines = [];
-  for (let i = clubBoard.slots.length - 1; i >= 0; i--) {
-    const slot = clubBoard.slots[i];
+  // Group by zones to make the embed easier to scan
+  const zones = { ATT: [], MID: [], DEF: [], GK: [] };
+
+  for (const slot of clubBoard.slots) {
+    const zone = getPositionZone(slot.label);
     const emoji = slot.open ? '🟢' : '🔴';
+
     let text;
     if (slot.open) text = 'OPEN';
     else if (slot.takenBy) text = `TAKEN by <@${slot.takenBy}>`;
     else text = 'TAKEN';
-    lines.push(`**${slot.label}** – ${emoji} ${text}`);
+
+    zones[zone].push(`**${slot.label}** – ${emoji} ${text}`);
   }
+
+  const parts = [];
+  const pushZone = (title, key) => {
+    if (!zones[key] || zones[key].length === 0) return;
+    parts.push(`__${title}__`);
+    parts.push(zones[key].join('\n'));
+  };
+
+  // Attack at top, GK at bottom
+  pushZone('Attack', 'ATT');
+  pushZone('Midfield', 'MID');
+  pushZone('Defense', 'DEF');
+  pushZone('Goalkeeper', 'GK');
+
+  const spotsTaken = clubBoard.slots.filter((s) => !s.open).length;
+  const totalSpots = clubBoard.slots.length;
+
+  const description =
+    `**Club:** ${club.name}\n` +
+    `**Spots filled:** ${spotsTaken}/${totalSpots}\n\n` +
+    (parts.length ? parts.join('\n\n') : '*No spots configured.*');
 
   const embed = new EmbedBuilder()
     .setTitle(`Club Spots – ${clubBoard.formation}`)
-    .setDescription(`**Club:** ${club.name}\n\n${lines.join('\n')}`)
+    .setColor(getFormationColor(clubBoard.formation))
+    .setDescription(description)
     .setFooter({
       text:
         'Players: click a spot to claim. Managers can assign/move/remove players and change formations.'
@@ -457,7 +500,7 @@ function buildEmbedForClub(guildId, clubKey) {
 }
 
 // Buttons for a specific club, based on its current formation slots
-// Also ordered from top of pitch (attack) down to GK
+// Grouped by zone: Attack → Midfield → Defense → GK
 function buildButtons(guildId, clubKey) {
   const state = getGuildState(guildId);
   const { boardState } = state;
@@ -466,13 +509,40 @@ function buildButtons(guildId, clubKey) {
   const rows = [];
   let currentRow = new ActionRowBuilder();
 
-  for (let i = clubBoard.slots.length - 1; i >= 0; i--) {
-    const slot = clubBoard.slots[i];
+  const zoneOrder = ['ATT', 'MID', 'DEF', 'GK'];
+
+  const slotMeta = clubBoard.slots.map((slot, index) => ({
+    slot,
+    index,
+    zone: getPositionZone(slot.label)
+  }));
+
+  // Sort by zone, then by original index
+  slotMeta.sort((a, b) => {
+    const za = zoneOrder.indexOf(a.zone);
+    const zb = zoneOrder.indexOf(b.zone);
+    if (za !== zb) return za - zb;
+    return a.index - b.index;
+  });
+
+  for (const { slot, index } of slotMeta) {
+    const guild = client.guilds.cache.get(guildId);
+    let label = slot.label;
+
+    // Show a short player name inside the button when taken
+    if (!slot.open && slot.takenBy && guild) {
+      const member = guild.members.cache.get(slot.takenBy);
+      const displayName =
+        member?.displayName || member?.user?.username || 'Taken';
+      const shortName =
+        displayName.length > 7 ? displayName.slice(0, 7) + '…' : displayName;
+      label = `${slot.label}·${shortName}`;
+    }
 
     const button = new ButtonBuilder()
       // customId: pos_<clubKey>_<index>
-      .setCustomId(`pos_${clubKey}_${i}`)
-      .setLabel(slot.label)
+      .setCustomId(`pos_${clubKey}_${index}`)
+      .setLabel(label)
       .setStyle(slot.open ? ButtonStyle.Success : ButtonStyle.Danger);
 
     currentRow.addComponents(button);
@@ -649,7 +719,9 @@ client.on(Events.GuildCreate, async (guild) => {
   try {
     if (!client.application?.commands) return;
     await client.application.commands.set(COMMANDS, guild.id);
-    console.log(`✅ Commands registered in newly joined guild ${guild.name} (${guild.id})`);
+    console.log(
+      `✅ Commands registered in newly joined guild ${guild.name} (${guild.id})`
+    );
   } catch (err) {
     console.error('⚠️ Failed to register commands in new guild', guild.id, err);
   }
@@ -668,10 +740,8 @@ async function startAssignFromVc(interaction, state, clubKey) {
   }
 
   const { clubs, boardState } = state;
-  const clubsBtn = clubs;
-  const boardStateBtn = boardState;
 
-  const club = getClubByKey(clubsBtn, clubKey);
+  const club = getClubByKey(clubs, clubKey);
   if (!club) {
     return interaction.reply({
       content: 'Unknown club in assignment request.',
@@ -691,8 +761,7 @@ async function startAssignFromVc(interaction, state, clubKey) {
 
     if (!voiceChannel) {
       return interaction.reply({
-        content:
-          'The voice channel linked to this panel no longer exists.',
+        content: 'The voice channel linked to this panel no longer exists.',
         ephemeral: true
       });
     }
@@ -753,10 +822,8 @@ async function startManagePlayers(interaction, state, clubKey) {
   }
 
   const { clubs, boardState } = state;
-  const clubsBtn = clubs;
-  const boardStateBtn = boardState;
 
-  const clubBoard = boardStateBtn[clubKey];
+  const clubBoard = boardState[clubKey];
   if (!clubBoard) {
     return interaction.reply({
       content: 'Club not found.',
@@ -802,7 +869,7 @@ async function startManagePlayers(interaction, state, clubKey) {
     .addOptions(options.slice(0, 25));
 
   const row = new ActionRowBuilder().addComponents(select);
-  const club = getClubByKey(clubsBtn, clubKey);
+  const club = getClubByKey(clubs, clubKey);
 
   return interaction.reply({
     content: `Pick a player in **${club ? club.name : clubKey}** to remove or move:`,
@@ -997,7 +1064,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
 
         disabledClub.enabled = true;
-        boardStateBtn[disabledClub.key] = createEmptyBoardForFormation(DEFAULT_FORMATION);
+        boardStateBtn[disabledClub.key] = createEmptyBoardForFormation(
+          DEFAULT_FORMATION
+        );
         stateBtn.currentClubKey = disabledClub.key;
 
         return interaction.reply({
@@ -1103,7 +1172,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        const clubBoard = boardState[clubKey] || createEmptyBoardForFormation(DEFAULT_FORMATION);
+        const clubBoard =
+          boardState[clubKey] || createEmptyBoardForFormation(DEFAULT_FORMATION);
         const currentFormation = clubBoard.formation || DEFAULT_FORMATION;
 
         const formationNames = Object.keys(FORMATION_POSITIONS);
@@ -1368,8 +1438,21 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         const seenLabelIndex = {};
         const options = [];
-        for (let idx = clubBoard.slots.length - 1; idx >= 0; idx--) {
-          const slot = clubBoard.slots[idx];
+        // Present in same zone-grouped order as buttons (Attack -> GK)
+        const zoneOrder = ['ATT', 'MID', 'DEF', 'GK'];
+        const slotMeta = clubBoard.slots.map((slot, idx) => ({
+          slot,
+          index: idx,
+          zone: getPositionZone(slot.label)
+        }));
+        slotMeta.sort((a, b) => {
+          const za = zoneOrder.indexOf(a.zone);
+          const zb = zoneOrder.indexOf(b.zone);
+          if (za !== zb) return za - zb;
+          return a.index - b.index;
+        });
+
+        for (const { slot, index } of slotMeta) {
           const total = labelCounts[slot.label];
           let label = slot.label;
           if (total > 1) {
@@ -1378,7 +1461,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           }
           options.push({
             label,
-            value: String(idx)
+            value: String(index)
           });
         }
 
@@ -1547,8 +1630,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         const seenLabelIndex = {};
         const options = [];
-        for (let idx = clubBoard.slots.length - 1; idx >= 0; idx--) {
-          const slot = clubBoard.slots[idx];
+        const zoneOrder = ['ATT', 'MID', 'DEF', 'GK'];
+        const slotMeta = clubBoard.slots.map((slot, idx) => ({
+          slot,
+          index: idx,
+          zone: getPositionZone(slot.label)
+        }));
+        slotMeta.sort((a, b) => {
+          const za = zoneOrder.indexOf(a.zone);
+          const zb = zoneOrder.indexOf(b.zone);
+          if (za !== zb) return za - zb;
+          return a.index - b.index;
+        });
+
+        for (const { slot, index } of slotMeta) {
           const total = labelCounts[slot.label];
           let label = slot.label;
           if (total > 1) {
@@ -1557,7 +1652,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           }
           options.push({
             label,
-            value: String(idx)
+            value: String(index)
           });
         }
 
@@ -1637,7 +1732,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
           content:
             choice === '__REMOVE__'
               ? `Removed <@${userId}> from all spots in **${club.name}**.`
-              : `Moved <@${userId}> to **${clubBoard.slots[parseInt(choice, 10)].label}** in **${club.name}**.`,
+              : `Moved <@${userId}> to **${
+                  clubBoard.slots[parseInt(choice, 10)].label
+                }** in **${club.name}**.`,
           components: []
         });
       }
