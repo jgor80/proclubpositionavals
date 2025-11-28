@@ -18,7 +18,7 @@ const {
 const token = process.env.BOT_TOKEN;
 if (!token) {
   console.error('❌ BOT_TOKEN env var not set');
-  process.exit(1);
+  console.exit(1);
 }
 
 // We need Guilds + GuildVoiceStates for VC-aware spot claiming
@@ -823,7 +823,13 @@ async function refreshClubPanels(guildId, clubKey) {
         components: buildAdminComponents(guildId, clubKey)
       });
     } catch (err) {
-      console.error('⚠️ Failed to update admin panel after state change:', err);
+      if (err.code === 10008) {
+        console.warn('⚠️ Admin panel message missing, clearing stored reference.');
+        state.adminPanelChannelId = null;
+        state.adminPanelMessageId = null;
+      } else {
+        console.error('⚠️ Failed to update admin panel after state change:', err);
+      }
     }
   }
 
@@ -840,10 +846,17 @@ async function refreshClubPanels(guildId, clubKey) {
           components: buildAdminComponents(guildId, clubKey)
         });
       } catch (err) {
-        console.error(
-          `⚠️ Failed to update VC panel for voice channel ${vcId} after state change:`,
-          err
-        );
+        if (err.code === 10008) {
+          console.warn(
+            `⚠️ VC panel message for voice channel ${vcId} is missing, removing panel reference.`
+          );
+          delete state.vcPanels[vcId];
+        } else {
+          console.error(
+            `⚠️ Failed to update VC panel for voice channel ${vcId} after state change:`,
+            err
+          );
+        }
       }
     }
   }
@@ -1622,7 +1635,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    // ----- Dropdowns (club select, viewer select, player tools, assignment selects, vcspots, formation select, manage players, set VC) -----
+    // ----- Dropdowns -----
     if (interaction.isStringSelectMenu()) {
       const id = interaction.customId;
       const guildIdSel = interaction.guildId;
@@ -2045,12 +2058,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-// When someone leaves voice, clear any slots they held in any club
+// When someone leaves or moves voice, clear any slots they held in any club
 client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
   try {
-    if (!oldState.guild || !oldState.channelId) return;
-    // If they are still in *some* voice channel (moved), don’t clear yet
-    if (newState.channelId) return;
+    if (!oldState.guild) return;
+    // Only act when they were previously in *a* voice channel and now changed channels (or left)
+    if (!oldState.channelId || oldState.channelId === newState.channelId) return;
 
     const guildId = oldState.guild.id;
     const state = getGuildState(guildId);
