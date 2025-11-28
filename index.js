@@ -10,7 +10,8 @@ const {
   StringSelectMenuBuilder,
   ModalBuilder,
   TextInputBuilder,
-  TextInputStyle
+  TextInputStyle,
+  ChannelType
 } = require('discord.js');
 
 // Get token from environment variable only
@@ -33,225 +34,225 @@ const FORMATION_POSITIONS = {
   // 3-at-the-back
   "3-1-4-2": [
     "GK",
-    "CB","CB","CB",
+    "CB", "CB", "CB",
     "CDM",
-    "LM","CM","CM","RM",
-    "ST","ST"
+    "LM", "CM", "CM", "RM",
+    "ST", "ST"
   ],
 
   "3-4-1-2": [
     "GK",
-    "CB","CB","CB",
-    "LM","CM","CM","RM",
+    "CB", "CB", "CB",
+    "LM", "CM", "CM", "RM",
     "CAM",
-    "ST","ST"
+    "ST", "ST"
   ],
 
   "3-4-2-1": [
     "GK",
-    "CB","CB","CB",
-    "LM","CM","CM","RM",
-    "CAM","CAM",
+    "CB", "CB", "CB",
+    "LM", "CM", "CM", "RM",
+    "CAM", "CAM",
     "ST"
   ],
 
   "3-4-3": [
     "GK",
-    "CB","CB","CB",
-    "LM","CM","CM","RM",
-    "LW","ST","RW"
+    "CB", "CB", "CB",
+    "LM", "CM", "CM", "RM",
+    "LW", "ST", "RW"
   ],
 
   "3-5-2": [
     "GK",
-    "CB","CB","CB",
-    "LM","CDM","CAM","CDM","RM",
-    "ST","ST"
+    "CB", "CB", "CB",
+    "LM", "CDM", "CAM", "CDM", "RM",
+    "ST", "ST"
   ],
 
   // 4-at-the-back, 4-1-x-x and 4-2-x-x shapes
   "4-1-2-1-2": [          // 41212 (wide)
     "GK",
-    "LB","CB","CB","RB",
+    "LB", "CB", "CB", "RB",
     "CDM",
-    "LM","RM",
+    "LM", "RM",
     "CAM",
-    "ST","ST"
+    "ST", "ST"
   ],
 
   "4-1-2-1-2 (2)": [      // 41212(2) (narrow)
     "GK",
-    "LB","CB","CB","RB",
+    "LB", "CB", "CB", "RB",
     "CDM",
-    "CM","CM",
+    "CM", "CM",
     "CAM",
-    "ST","ST"
+    "ST", "ST"
   ],
 
   "4-1-3-2": [            // 4132
     "GK",
-    "LB","CB","CB","RB",
+    "LB", "CB", "CB", "RB",
     "CDM",
-    "LM","CM","RM",
-    "ST","ST"
+    "LM", "CM", "RM",
+    "ST", "ST"
   ],
 
   "4-1-4-1": [            // 4141
     "GK",
-    "LB","CB","CB","RB",
+    "LB", "CB", "CB", "RB",
     "CDM",
-    "LM","CM","CM","RM",
+    "LM", "CM", "CM", "RM",
     "ST"
   ],
 
   "4-2-1-3": [            // 4213
     "GK",
-    "LB","CB","CB","RB",
-    "CDM","CDM",
+    "LB", "CB", "CB", "RB",
+    "CDM", "CDM",
     "CAM",
-    "LW","ST","RW"
+    "LW", "ST", "RW"
   ],
 
   "4-2-2-2": [            // 4222
     "GK",
-    "LB","CB","CB","RB",
-    "CDM","CDM",
-    "CAM","CAM",
-    "ST","ST"
+    "LB", "CB", "CB", "RB",
+    "CDM", "CDM",
+    "CAM", "CAM",
+    "ST", "ST"
   ],
 
   "4-2-3-1": [            // 4231 (narrow, 3 CAMs)
     "GK",
-    "LB","CB","CB","RB",
-    "CDM","CDM",
-    "CAM","CAM","CAM",
+    "LB", "CB", "CB", "RB",
+    "CDM", "CDM",
+    "CAM", "CAM", "CAM",
     "ST"
   ],
 
   "4-2-3-1 (2)": [        // 4231(2) (wide: LM/RM + CAM)
     "GK",
-    "LB","CB","CB","RB",
-    "CDM","CDM",
-    "LM","CAM","RM",
+    "LB", "CB", "CB", "RB",
+    "CDM", "CDM",
+    "LM", "CAM", "RM",
     "ST"
   ],
 
   "4-2-4": [              // 424
     "GK",
-    "LB","CB","CB","RB",
-    "CM","CM",
-    "LW","ST","ST","RW"
+    "LB", "CB", "CB", "RB",
+    "CM", "CM",
+    "LW", "ST", "ST", "RW"
   ],
 
   // 4-3-x-x
   "4-3-1-2": [            // 4312
     "GK",
-    "LB","CB","CB","RB",
-    "CM","CM","CM",
+    "LB", "CB", "CB", "RB",
+    "CM", "CM", "CM",
     "CAM",
-    "ST","ST"
+    "ST", "ST"
   ],
 
   "4-3-2-1": [            // 4321 (Christmas tree)
     "GK",
-    "LB","CB","CB","RB",
-    "CM","CM","CM",
-    "CF","CF",
+    "LB", "CB", "CB", "RB",
+    "CM", "CM", "CM",
+    "CF", "CF",
     "ST"
   ],
 
   "4-3-3": [              // 433 base – classic FUT layout
     "GK",
-    "LB","CB","CB","RB",
-    "CM","CM","CM",
-    "LW","ST","RW"
+    "LB", "CB", "CB", "RB",
+    "CM", "CM", "CM",
+    "LW", "ST", "RW"
   ],
 
   "4-3-3 (2)": [          // 433(2) – 1 CDM + 2 CM
     "GK",
-    "LB","CB","CB","RB",
-    "CDM","CM","CM",
-    "LW","ST","RW"
+    "LB", "CB", "CB", "RB",
+    "CDM", "CM", "CM",
+    "LW", "ST", "RW"
   ],
 
   "4-3-3 (3)": [          // 433(3) – more defensive, double pivot
     "GK",
-    "LB","CB","CB","RB",
-    "CDM","CDM","CM",
-    "LW","ST","RW"
+    "LB", "CB", "CB", "RB",
+    "CDM", "CDM", "CM",
+    "LW", "ST", "RW"
   ],
 
   "4-3-3 (4)": [          // 433(4) – more attacking, 2 CAM
     "GK",
-    "LB","CB","CB","RB",
-    "CM","CAM","CAM",
-    "LW","ST","RW"
+    "LB", "CB", "CB", "RB",
+    "CM", "CAM", "CAM",
+    "LW", "ST", "RW"
   ],
 
   // 4-4-x-x & 4-5-x
   "4-4-1-1 (2)": [        // 4411(2)
     "GK",
-    "LB","CB","CB","RB",
-    "LM","CM","CM","RM",
+    "LB", "CB", "CB", "RB",
+    "LM", "CM", "CM", "RM",
     "CF",
     "ST"
   ],
 
   "4-4-2": [              // 442
     "GK",
-    "LB","CB","CB","RB",
-    "LM","CM","CM","RM",
-    "ST","ST"
+    "LB", "CB", "CB", "RB",
+    "LM", "CM", "CM", "RM",
+    "ST", "ST"
   ],
 
   "4-4-2 (2)": [          // 442(2) – holding, double pivot
     "GK",
-    "LB","CB","CB","RB",
-    "LM","CDM","CDM","RM",
-    "ST","ST"
+    "LB", "CB", "CB", "RB",
+    "LM", "CDM", "CDM", "RM",
+    "ST", "ST"
   ],
 
   "4-5-1": [              // 451 – more attacking 4-5-1
     "GK",
-    "LB","CB","CB","RB",
-    "LM","CM","CAM","CM","RM",
+    "LB", "CB", "CB", "RB",
+    "LM", "CM", "CAM", "CM", "RM",
     "ST"
   ],
 
   "4-5-1 (2)": [          // 451(2) – more defensive, double pivot
     "GK",
-    "LB","CB","CB","RB",
-    "LM","CDM","CAM","CDM","RM",
+    "LB", "CB", "CB", "RB",
+    "LM", "CDM", "CAM", "CDM", "RM",
     "ST"
   ],
 
   // 5-at-the-back
   "5-2-1-2": [            // 5212
     "GK",
-    "LWB","CB","CB","CB","RWB",
-    "CM","CM",
+    "LWB", "CB", "CB", "CB", "RWB",
+    "CM", "CM",
     "CAM",
-    "ST","ST"
+    "ST", "ST"
   ],
 
   "5-2-3": [              // 523
     "GK",
-    "LWB","CB","CB","CB","RWB",
-    "CM","CM",
-    "LW","ST","RW"
+    "LWB", "CB", "CB", "CB", "RWB",
+    "CM", "CM",
+    "LW", "ST", "RW"
   ],
 
   "5-3-2": [              // 532
     "GK",
-    "LWB","CB","CB","CB","RWB",
-    "CM","CM","CM",
-    "ST","ST"
+    "LWB", "CB", "CB", "CB", "RWB",
+    "CM", "CM", "CM",
+    "ST", "ST"
   ],
 
   "5-4-1": [              // 541
     "GK",
-    "LWB","CB","CB","CB","RWB",
-    "LM","CM","CM","RM",
+    "LWB", "CB", "CB", "CB", "RWB",
+    "LM", "CM", "CM", "RM",
     "ST"
   ]
 };
@@ -298,65 +299,6 @@ const FORMATION_INFO = {
 };
 
 const DEFAULT_FORMATION = "4-3-3";
-
-// ---- Formation category lists ----
-
-// All 3-back shapes
-const THREE_BACK_FORMATIONS = [
-  "3-1-4-2",
-  "3-4-1-2",
-  "3-4-2-1",
-  "3-4-3",
-  "3-5-2"
-];
-
-// All 4-back shapes
-const FOUR_BACK_FORMATIONS = [
-  "4-1-2-1-2",
-  "4-1-2-1-2 (2)",
-  "4-1-3-2",
-  "4-1-4-1",
-  "4-2-1-3",
-  "4-2-2-2",
-  "4-2-3-1",
-  "4-2-3-1 (2)",
-  "4-2-4",
-  "4-3-1-2",
-  "4-3-2-1",
-  "4-3-3",
-  "4-3-3 (2)",
-  "4-3-3 (3)",
-  "4-3-3 (4)",
-  "4-4-1-1 (2)",
-  "4-4-2",
-  "4-4-2 (2)",
-  "4-5-1",
-  "4-5-1 (2)"
-];
-
-// All 5-back shapes
-const FIVE_BACK_FORMATIONS = [
-  "5-2-1-2",
-  "5-2-3",
-  "5-3-2",
-  "5-4-1"
-];
-
-// Strict "two ST up top" formations (ST ST at the front line).
-const TWO_STRIKER_FORMATIONS = [
-  "3-1-4-2",
-  "3-4-1-2",
-  "3-5-2",
-  "4-1-2-1-2",
-  "4-1-2-1-2 (2)",
-  "4-1-3-2",
-  "4-2-2-2",
-  "4-3-1-2",
-  "4-4-2",
-  "4-4-2 (2)",
-  "5-2-1-2",
-  "5-3-2"
-];
 
 // Default club slots per guild; names are editable from the panel
 // Max clubs = 5
@@ -418,7 +360,8 @@ function createEmptyBoardState(clubs) {
 //   currentClubKey,
 //   adminPanelChannelId,
 //   adminPanelMessageId,
-//   vcPanels: { [voiceChannelId]: { clubKey, textChannelId, messageId } }
+//   vcPanels: { [voiceChannelId]: { clubKey, textChannelId, messageId } },
+//   clubVcLinks: { [clubKey]: voiceChannelId | null }
 // }
 const guildStates = new Map();
 
@@ -429,15 +372,31 @@ function getGuildState(guildId) {
   if (!state) {
     const clubs = cloneDefaultClubs();
     const boardState = createEmptyBoardState(clubs);
+    const clubVcLinks = {};
+    clubs.forEach((club) => {
+      clubVcLinks[club.key] = null;
+    });
+
     state = {
       clubs,
       boardState,
       currentClubKey: 'club1',
       adminPanelChannelId: null,
       adminPanelMessageId: null,
-      vcPanels: {}
+      vcPanels: {},
+      clubVcLinks
     };
     guildStates.set(guildId, state);
+  } else {
+    // Ensure clubVcLinks exists and has keys for all clubs (future-proof)
+    if (!state.clubVcLinks) {
+      state.clubVcLinks = {};
+    }
+    state.clubs.forEach((club) => {
+      if (!(club.key in state.clubVcLinks)) {
+        state.clubVcLinks[club.key] = null;
+      }
+    });
   }
   return state;
 }
@@ -478,7 +437,7 @@ function buildEmbedForClub(guildId, clubKey) {
   const state = getGuildState(guildId);
   if (!state) throw new Error('No state for guild');
 
-  const { clubs, boardState } = state;
+  const { clubs, boardState, clubVcLinks } = state;
   const club = getClubByKey(clubs, clubKey);
   if (!club) throw new Error(`Unknown club key: ${clubKey}`);
 
@@ -490,16 +449,33 @@ function buildEmbedForClub(guildId, clubKey) {
   for (let i = clubBoard.slots.length - 1; i >= 0; i--) {
     const slot = clubBoard.slots[i];
     const emoji = slot.open ? '🟢' : '🔴';
+
     let text;
-    if (slot.open) text = 'OPEN';
-    else if (slot.takenBy) text = `TAKEN by <@${slot.takenBy}>`;
-    else text = 'TAKEN';
+    if (slot.open) {
+      text = 'OPEN';
+    } else if (slot.takenBy) {
+      if (slot.takenBy === '__NOT_IN_VC__') {
+        text = 'TAKEN by player not in VC';
+      } else {
+        text = `TAKEN by <@${slot.takenBy}>`;
+      }
+    } else {
+      text = 'TAKEN';
+    }
+
     lines.push(`**${slot.label}** – ${emoji} ${text}`);
   }
 
+  const vcId = clubVcLinks?.[clubKey] || null;
+  const vcLine = vcId ? `**Voice Channel:** <#${vcId}>\n` : '';
+
   const embed = new EmbedBuilder()
     .setTitle(`Club Spots – ${clubBoard.formation}`)
-    .setDescription(`**Club:** ${club.name}\n\n${lines.join('\n')}`)
+    .setDescription(
+      `**Club:** ${club.name}\n` +
+      (vcLine ? `${vcLine}\n` : '\n') +
+      lines.join('\n')
+    )
     .setFooter({
       text:
         'Players: click a spot to claim. Managers can assign/move/remove players and change formations.'
@@ -526,7 +502,6 @@ function buildButtons(guildId, clubKey) {
   const rows = [];
   let currentRow = new ActionRowBuilder();
 
-  // Loop from last (strikers) to first (GK)
   for (let i = clubBoard.slots.length - 1; i >= 0; i--) {
     const slot = clubBoard.slots[i];
 
@@ -548,9 +523,6 @@ function buildButtons(guildId, clubKey) {
     rows.push(currentRow);
   }
 
-  // NOTE: rows here will be at most 3 for 11 spots (5 + 5 + 1),
-  // and buildAdminComponents adds 2 more rows (club select + controls)
-  // → total 5 rows max, which Discord allows.
   return rows;
 }
 
@@ -596,7 +568,7 @@ function buildViewerClubSelect(guildId, selectedKey) {
 
 // Admin/VC panel components for a specific club
 // Row 1: club select
-// Row 2: control buttons (Rename, Add, Remove, Player Tools, Formation)
+// Row 2: global/club controls (Rename, Add, Remove, Player Tools, Formation)
 // Rows 3-5: dynamic position buttons from formation
 function buildAdminComponents(guildId, clubKey) {
   const clubRow = buildClubSelect(guildId, clubKey);
@@ -625,8 +597,10 @@ function buildAdminComponents(guildId, clubKey) {
   );
 
   const buttonRows = buildButtons(guildId, clubKey);
-  // clubRow + controlRow + up to 3 button rows = max 5 rows (Discord limit).
-  return [clubRow, controlRow, ...buttonRows];
+
+  // IMPORTANT: Max 5 rows total per message
+  // clubRow (1) + controlRow (1) + up to 3 position rows = 5
+  return [clubRow, controlRow, ...buttonRows.slice(0, 3)];
 }
 
 // Refresh all panels (global + any VC panels) that show a given club
@@ -732,11 +706,8 @@ async function startAssignFromVc(interaction, state, clubKey) {
     });
   }
 
-  const { clubs, boardState } = state;
-  const clubsBtn = clubs;
-  const boardStateBtn = boardState;
-
-  const club = getClubByKey(clubsBtn, clubKey);
+  const { clubs } = state;
+  const club = getClubByKey(clubs, clubKey);
   if (!club) {
     return interaction.reply({
       content: 'Unknown club in assignment request.',
@@ -756,8 +727,7 @@ async function startAssignFromVc(interaction, state, clubKey) {
 
     if (!voiceChannel) {
       return interaction.reply({
-        content:
-          'The voice channel linked to this panel no longer exists.',
+        content: 'The voice channel linked to this panel no longer exists.',
         ephemeral: true
       });
     }
@@ -788,15 +758,23 @@ async function startAssignFromVc(interaction, state, clubKey) {
     });
   }
 
-  const options = members.map((m) => ({
+  // Up to 24 real players + 1 placeholder = 25 options (Discord limit)
+  const memberOptions = members.map((m) => ({
     label: m.displayName || m.user.username,
     value: m.id
   }));
 
+  const options = memberOptions.slice(0, 24);
+  options.push({
+    label: 'Player not in VC (placeholder)',
+    value: '__NOT_IN_VC__',
+    description: 'Use when someone is playing but not connected to voice.'
+  });
+
   const select = new StringSelectMenuBuilder()
     .setCustomId(`assign_player_pick_${clubKey}`)
-    .setPlaceholder('Pick a player')
-    .addOptions(options.slice(0, 25));
+    .setPlaceholder('Pick a player or placeholder')
+    .addOptions(options);
 
   const row = new ActionRowBuilder().addComponents(select);
 
@@ -818,10 +796,7 @@ async function startManagePlayers(interaction, state, clubKey) {
   }
 
   const { clubs, boardState } = state;
-  const clubsBtn = clubs;
-  const boardStateBtn = boardState;
-
-  const clubBoard = boardStateBtn[clubKey];
+  const clubBoard = boardState[clubKey];
   if (!clubBoard) {
     return interaction.reply({
       content: 'Club not found.',
@@ -836,6 +811,19 @@ async function startManagePlayers(interaction, state, clubKey) {
   for (const slot of clubBoard.slots) {
     if (slot.open || !slot.takenBy) continue;
     const userId = slot.takenBy;
+
+    // Handle placeholder specially
+    if (userId === '__NOT_IN_VC__') {
+      if (seen.has(userId)) continue;
+      seen.add(userId);
+      options.push({
+        label: 'Player not in VC (placeholder)',
+        value: userId,
+        description: 'Placeholder for someone not in voice'
+      });
+      continue;
+    }
+
     if (seen.has(userId)) continue;
     seen.add(userId);
 
@@ -867,10 +855,88 @@ async function startManagePlayers(interaction, state, clubKey) {
     .addOptions(options.slice(0, 25));
 
   const row = new ActionRowBuilder().addComponents(select);
-  const club = getClubByKey(clubsBtn, clubKey);
+  const club = getClubByKey(clubs, clubKey);
 
   return interaction.reply({
     content: `Pick a player in **${club ? club.name : clubKey}** to remove or move:`,
+    components: [row],
+    ephemeral: true
+  });
+}
+
+// Helper: start "Set VC for this club" flow (manager-only)
+async function startSetClubVc(interaction, state, clubKey) {
+  if (!isManager(interaction.member)) {
+    return interaction.reply({
+      content:
+        'Only captains, managers, owners, media, or admins can set the voice channel.',
+      ephemeral: true
+    });
+  }
+
+  const guild = interaction.guild;
+  if (!guild) {
+    return interaction.reply({
+      content: 'Guild not found.',
+      ephemeral: true
+    });
+  }
+
+  const club = getClubByKey(state.clubs, clubKey);
+  if (!club) {
+    return interaction.reply({
+      content: 'Unknown club in voice channel link request.',
+      ephemeral: true
+    });
+  }
+
+  const voiceChannels = guild.channels.cache.filter(
+    (ch) =>
+      ch.type === ChannelType.GuildVoice ||
+      ch.type === ChannelType.GuildStageVoice
+  );
+
+  if (!voiceChannels.size) {
+    return interaction.reply({
+      content: 'No voice channels found in this server to link.',
+      ephemeral: true
+    });
+  }
+
+  const currentLinkedId = state.clubVcLinks?.[clubKey] || null;
+  const options = [];
+
+  // Up to 24 channels + 1 "clear" option
+  const sorted = [...voiceChannels.values()].sort((a, b) => {
+    if (a.rawPosition !== b.rawPosition) {
+      return a.rawPosition - b.rawPosition;
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  for (const vc of sorted) {
+    options.push({
+      label: vc.name.slice(0, 100),
+      value: vc.id,
+      default: vc.id === currentLinkedId
+    });
+    if (options.length >= 24) break;
+  }
+
+  options.push({
+    label: 'Clear voice channel link',
+    value: '__NONE__'
+  });
+
+  const select = new StringSelectMenuBuilder()
+    .setCustomId(`set_vc_select_${clubKey}`)
+    .setPlaceholder('Select a voice channel')
+    .addOptions(options);
+
+  const row = new ActionRowBuilder().addComponents(select);
+
+  return interaction.reply({
+    content: `Choose a voice channel to link to **${club.name}**.`,
     components: [row],
     ephemeral: true
   });
@@ -921,7 +987,15 @@ async function setClubFormation(interaction, guildId, clubKey, formationName) {
     });
   }
 
+  // Preserve VC link when changing formation
+  const oldBoard = state.boardState[clubKey];
+  const oldVcId = state.clubVcLinks?.[clubKey] || null;
+
   state.boardState[clubKey] = createEmptyBoardForFormation(formationName);
+
+  if (!state.clubVcLinks) state.clubVcLinks = {};
+  state.clubVcLinks[clubKey] = oldVcId;
+
   await refreshClubPanels(guildId, clubKey);
 
   return interaction.update({
@@ -1062,8 +1136,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
 
         disabledClub.enabled = true;
-        boardStateBtn[disabledClub.key] =
-          createEmptyBoardForFormation(DEFAULT_FORMATION);
+        boardStateBtn[disabledClub.key] = createEmptyBoardForFormation(
+          DEFAULT_FORMATION
+        );
+        if (!stateBtn.clubVcLinks) stateBtn.clubVcLinks = {};
+        stateBtn.clubVcLinks[disabledClub.key] = null;
+
         stateBtn.currentClubKey = disabledClub.key;
 
         return interaction.reply({
@@ -1105,6 +1183,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         currentClub.enabled = false;
         resetClubSpots(boardStateBtn, clubKey);
+        if (stateBtn.clubVcLinks) {
+          stateBtn.clubVcLinks[clubKey] = null;
+        }
 
         // If the removed club was the "current" one, move pointer
         if (stateBtn.currentClubKey === clubKey) {
@@ -1132,7 +1213,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         const select = new StringSelectMenuBuilder()
           .setCustomId(`player_tools_select_${clubKey}`)
-          .setPlaceholder('Choose a player tool')
+          .setPlaceholder('Choose a tool')
           .addOptions(
             {
               label: 'Assign from your voice channel',
@@ -1145,6 +1226,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
             {
               label: 'Reset all spots',
               value: 'reset'
+            },
+            {
+              label: 'Set voice channel for this club',
+              value: 'set_vc'
             }
           );
 
@@ -1157,7 +1242,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Formation menu button (manager-only, opens grouped dropdowns)
+      // Formation menu button (manager-only, opens ephemeral selects grouped by style)
       if (id.startsWith('formation_menu_')) {
         const clubKey = id.substring('formation_menu_'.length);
 
@@ -1173,53 +1258,45 @@ client.on(Events.InteractionCreate, async (interaction) => {
           boardState[clubKey] || createEmptyBoardForFormation(DEFAULT_FORMATION);
         const currentFormation = clubBoard.formation || DEFAULT_FORMATION;
 
+        const allNames = Object.keys(FORMATION_POSITIONS);
+
+        const threeBack = allNames.filter((name) => name.startsWith('3-'));
+        const fourBack = allNames.filter((name) => name.startsWith('4-'));
+        const fiveBack = allNames.filter((name) => name.startsWith('5-'));
+        const twoStrikers = allNames.filter((name) => {
+          const positions = FORMATION_POSITIONS[name] || [];
+          return positions.filter((p) => p === 'ST').length === 2;
+        });
+
+        const groups = [
+          { id: '3back', label: '3-back formations', list: threeBack },
+          { id: '4back', label: '4-back formations', list: fourBack },
+          { id: '5back', label: '5-back formations', list: fiveBack },
+          { id: '2st', label: 'Two-striker formations', list: twoStrikers }
+        ];
+
         const rows = [];
 
-        // helper to build one category select
-        const makeCategoryRow = (categoryId, placeholder, formationList) => {
-          if (!formationList || formationList.length === 0) return null;
-          const options = formationList.map((name) => ({
+        groups.forEach((group, idx) => {
+          if (!group.list.length) return;
+
+          const options = group.list.map((name) => ({
             label: name,
             value: name,
             default: name === currentFormation
           }));
+
           const select = new StringSelectMenuBuilder()
-            .setCustomId(`formation_select_${categoryId}_${clubKey}`)
-            .setPlaceholder(placeholder)
-            .addOptions(options);
-          return new ActionRowBuilder().addComponents(select);
-        };
+            .setCustomId(`formation_select_${clubKey}_${group.id}`)
+            .setPlaceholder(group.label)
+            .addOptions(options.slice(0, 25));
 
-        const row3 = makeCategoryRow(
-          '3back',
-          '3-back formations',
-          THREE_BACK_FORMATIONS
-        );
-        const row4 = makeCategoryRow(
-          '4back',
-          '4-back formations',
-          FOUR_BACK_FORMATIONS
-        );
-        const row5 = makeCategoryRow(
-          '5back',
-          '5-back formations',
-          FIVE_BACK_FORMATIONS
-        );
-        const row2st = makeCategoryRow(
-          '2striker',
-          'Two-striker formations (ST ST)',
-          TWO_STRIKER_FORMATIONS
-        );
+          rows.push(new ActionRowBuilder().addComponents(select));
+        });
 
-        if (row3) rows.push(row3);
-        if (row4) rows.push(row4);
-        if (row5) rows.push(row5);
-        if (row2st) rows.push(row2st);
-
-        // rows length will be ≤ 4 ⇒ under Discord's 5-row limit
         return interaction.reply({
           content:
-            'Choose a formation from one of these categories.\nChanging formation will reset all spots to OPEN for this club.',
+            'Choose a formation. Changing formation will reset all spots to OPEN for this club.',
           components: rows,
           ephemeral: true
         });
@@ -1345,7 +1422,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    // ----- Dropdowns (club select, viewer select, player tools, assignment selects, vcspots, formation select, manage players) -----
+    // ----- Dropdowns (club select, viewer select, player tools, assignment selects, vcspots, formation select, manage players, set VC) -----
     if (interaction.isStringSelectMenu()) {
       const id = interaction.customId;
       const guildIdSel = interaction.guildId;
@@ -1408,7 +1485,42 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (choice === 'reset') {
           return doResetSpots(interaction, stateSel, guildIdSel, clubKey);
         }
+        if (choice === 'set_vc') {
+          return startSetClubVc(interaction, stateSel, clubKey);
+        }
         return;
+      }
+
+      // Set VC: choose voice channel / clear
+      if (id.startsWith('set_vc_select_')) {
+        const clubKey = id.substring('set_vc_select_'.length);
+        const selected = interaction.values[0];
+
+        const club = getClubByKey(stateSel.clubs, clubKey);
+        if (!club) {
+          return interaction.reply({
+            content: 'Unknown club in voice channel link request.',
+            ephemeral: true
+          });
+        }
+
+        if (!stateSel.clubVcLinks) stateSel.clubVcLinks = {};
+
+        let responseText;
+        if (selected === '__NONE__') {
+          stateSel.clubVcLinks[clubKey] = null;
+          responseText = `Cleared the linked voice channel for **${club.name}**.`;
+        } else {
+          stateSel.clubVcLinks[clubKey] = selected;
+          responseText = `Linked **${club.name}** to voice channel <#${selected}>.`;
+        }
+
+        await refreshClubPanels(guildIdSel, clubKey);
+
+        return interaction.update({
+          content: responseText,
+          components: []
+        });
       }
 
       // First step of manager assignment: pick player (manager-only)
@@ -1469,7 +1581,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const row = new ActionRowBuilder().addComponents(posSelect);
 
         return interaction.update({
-          content: `Now pick a spot for <@${userId}> in **${club.name}**:`,
+          content: `Now pick a spot for ${
+            userId === '__NOT_IN_VC__' ? 'a player not in VC (placeholder)' : `<@${userId}>`
+          } in **${club.name}**:`,
           components: [row]
         });
       }
@@ -1520,8 +1634,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         await refreshClubPanels(guildIdSel, clubKey);
 
+        const playerLabel =
+          userId === '__NOT_IN_VC__'
+            ? 'a player not in VC (placeholder)'
+            : `<@${userId}>`;
+
         return interaction.update({
-          content: `Assigned <@${userId}> to **${slot.label}** in **${club.name}**.`,
+          content: `Assigned ${playerLabel} to **${slot.label}** in **${club.name}**.`,
           components: []
         });
       }
@@ -1581,6 +1700,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
           textChannelId: panelMessage.channel.id,
           messageId: panelMessage.id
         };
+
+        // Auto-link the VC for this club
+        if (!stateSel.clubVcLinks) stateSel.clubVcLinks = {};
+        stateSel.clubVcLinks[clubKey] = voiceChannelId;
 
         return interaction.update({
           content: `Linked **${club.name}** to voice channel **${
@@ -1653,7 +1776,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const row = new ActionRowBuilder().addComponents(posSelect);
 
         return interaction.update({
-          content: `Manage <@${userId}> in **${club.name}**:`,
+          content: `Manage ${
+            userId === '__NOT_IN_VC__'
+              ? 'the player not in VC placeholder'
+              : `<@${userId}>`
+          } in **${club.name}**:`,
           components: [row]
         });
       }
@@ -1712,20 +1839,37 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         await refreshClubPanels(guildIdSel, clubKey);
 
-        return interaction.update({
-          content:
-            choice === '__REMOVE__'
-              ? `Removed <@${userId}> from all spots in **${club.name}**.`
-              : `Moved <@${userId}> to **${clubBoard.slots[parseInt(choice, 10)].label}** in **${club.name}**.`,
-          components: []
-        });
+        if (choice === '__REMOVE__') {
+          if (userId === '__NOT_IN_VC__') {
+            return interaction.update({
+              content: `Removed the "player not in VC" placeholder from all spots in **${club.name}**.`,
+              components: []
+            });
+          } else {
+            return interaction.update({
+              content: `Removed <@${userId}> from all spots in **${club.name}**.`,
+              components: []
+            });
+          }
+        } else {
+          const slotIndex = parseInt(choice, 10);
+          const newSlot = clubBoard.slots[slotIndex];
+          const movedLabel =
+            userId === '__NOT_IN_VC__'
+              ? 'the player not in VC placeholder'
+              : `<@${userId}>`;
+
+          return interaction.update({
+            content: `Moved ${movedLabel} to **${newSlot.label}** in **${club.name}**.`,
+            components: []
+          });
+        }
       }
 
-      // Formation selection (manager-only) – from category dropdowns
+      // Formation selection (manager-only) – grouped selects
       if (id.startsWith('formation_select_')) {
-        // id pattern: formation_select_<category>_<clubKey>
-        const parts = id.split('_'); // ['formation','select','3back'|'4back'|'5back'|'2striker', clubKey]
-        const clubKey = parts[3];
+        const parts = id.split('_'); // ['formation','select',clubKey,groupId]
+        const clubKey = parts[2];
         const formationName = interaction.values[0];
         return setClubFormation(interaction, guildIdSel, clubKey, formationName);
       }
@@ -1781,4 +1925,3 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
 // ---------- LOGIN ----------
 
 client.login(token);
-console.log('🔌 SpotBot is starting…');
