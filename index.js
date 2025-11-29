@@ -18,7 +18,7 @@ const {
 const token = process.env.BOT_TOKEN;
 if (!token) {
   console.error('❌ BOT_TOKEN env var not set');
-  console.exit(1);
+  process.exit(1);
 }
 
 // We need Guilds + GuildVoiceStates for VC-aware spot claiming
@@ -28,7 +28,6 @@ const client = new Client({
 
 // Single source of truth for the placeholder id
 const PLACEHOLDER_USER_ID = '__NOT_IN_VC__';
-
 // Human label for placeholder (reused)
 const PLACEHOLDER_LABEL = 'Player not in VC (placeholder)';
 
@@ -263,7 +262,7 @@ const FORMATION_POSITIONS = {
   ]
 };
 
-// Each note broken onto its own line for readability in embeds
+// Notes split into lines so they render as separate lines in the embed
 const FORMATION_INFO = {
   // 3-at-the-back
   "3-1-4-2": [
@@ -767,6 +766,20 @@ function buildViewerClubSelect(guildId, selectedKey) {
   return new ActionRowBuilder().addComponents(select);
 }
 
+// Viewer components: club select + refresh button
+function buildViewerComponents(guildId, selectedKey) {
+  const selectRow = buildViewerClubSelect(guildId, selectedKey);
+
+  const refreshButton = new ButtonBuilder()
+    .setCustomId(`viewer_refresh_${selectedKey}`)
+    .setLabel('Refresh')
+    .setStyle(ButtonStyle.Secondary);
+
+  const refreshRow = new ActionRowBuilder().addComponents(refreshButton);
+
+  return [selectRow, refreshRow];
+}
+
 // Admin/VC panel components for a specific club
 // Row 1: club select
 // Row 2: global/club controls (Rename, Add, Remove, Player Tools, Formation)
@@ -1176,6 +1189,7 @@ async function doResetSpots(interaction, state, guildId, clubKey) {
 }
 
 // Helper: set formation and rebuild slots (manager-only)
+// Uses deferUpdate to avoid Unknown interaction (10062) when refresh work is slow
 async function setClubFormation(interaction, guildId, clubKey, formationName) {
   if (!isManager(interaction.member)) {
     return interaction.reply({
@@ -1201,19 +1215,26 @@ async function setClubFormation(interaction, guildId, clubKey, formationName) {
     });
   }
 
+  // Acknowledge quickly so the interaction doesn't expire
+  await interaction.deferUpdate();
+
   // Preserve VC link when changing formation
   const oldVcId = state.clubVcLinks?.[clubKey] || null;
 
   state.boardState[clubKey] = createEmptyBoardForFormation(formationName);
-
   if (!state.clubVcLinks) state.clubVcLinks = {};
   state.clubVcLinks[clubKey] = oldVcId;
 
-  await refreshClubPanels(guildId, clubKey);
+  try {
+    await refreshClubPanels(guildId, clubKey);
+  } catch (err) {
+    console.error('⚠️ Error refreshing panels after formation change:', err);
+  }
 
-  return interaction.update({
+  // Ephemeral confirmation
+  await interaction.followUp({
     content: `Formation for this club is now **${formationName}**. All spots have been reset.`,
-    components: []
+    ephemeral: true
   });
 }
 
@@ -1256,7 +1277,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         return interaction.reply({
           embeds: [buildEmbedForClub(guildId, key)],
-          components: [buildViewerClubSelect(guildId, key)],
+          components: buildViewerComponents(guildId, key),
           ephemeral: false
         });
       }
@@ -1308,6 +1329,23 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       const { clubs: clubsBtn, boardState: boardStateBtn } = stateBtn;
       const id = interaction.customId;
+
+      // Viewer: manual refresh button for /spots board
+      if (id.startsWith('viewer_refresh_')) {
+        const clubKey = id.substring('viewer_refresh_'.length);
+        const club = getClubByKey(stateBtn.clubs, clubKey);
+        if (!club || !club.enabled) {
+          return interaction.reply({
+            content: 'Unknown or disabled club to refresh.',
+            ephemeral: true
+          });
+        }
+
+        return interaction.update({
+          embeds: [buildEmbedForClub(guildIdBtn, clubKey)],
+          components: buildViewerComponents(guildIdBtn, clubKey)
+        });
+      }
 
       // Rename club (opens modal)
       if (id.startsWith('rename_club_')) {
@@ -1443,6 +1481,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
             {
               label: 'Set voice channel for this club',
               value: 'set_vc'
+            },
+            {
+              label: 'Refresh this club panel',
+              value: 'refresh'
             }
           );
 
@@ -1655,7 +1697,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         return interaction.update({
           embeds: [buildEmbedForClub(guildIdSel, selectedKey)],
-          components: [buildViewerClubSelect(guildIdSel, selectedKey)]
+          components: buildViewerComponents(guildIdSel, selectedKey)
         });
       }
 
@@ -1691,15 +1733,27 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         if (choice === 'assign') {
           return startAssignFromVc(interaction, stateSel, clubKey);
-        }
-        if (choice === 'manage') {
+        } else if (choice === 'manage') {
           return startManagePlayers(interaction, stateSel, clubKey);
-        }
-        if (choice === 'reset') {
+        } else if (choice === 'reset') {
           return doResetSpots(interaction, stateSel, guildIdSel, clubKey);
-        }
-        if (choice === 'set_vc') {
+        } else if (choice === 'set_vc') {
           return startSetClubVc(interaction, stateSel, clubKey);
+        } else if (choice === 'refresh') {
+          const club = getClubByKey(stateSel.clubs, clubKey);
+          if (!club) {
+            return interaction.update({
+              content: 'Unknown club to refresh.',
+              components: []
+            });
+          }
+
+          await refreshClubPanels(guildIdSel, clubKey);
+
+          return interaction.update({
+            content: `Refreshed all panels for **${club.name}**.`,
+            components: []
+          });
         }
         return;
       }
@@ -2044,16 +2098,25 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const parts = id.split('_'); // ['formation','select',clubKey,groupId]
         const clubKey = parts[2];
         const formationName = interaction.values[0];
-        return setClubFormation(interaction, guildIdSel, clubKey, formationName);
+        await setClubFormation(interaction, guildIdSel, clubKey, formationName);
+        return;
       }
     }
   } catch (err) {
     console.error('❌ Error handling interaction:', err);
+    // If the interaction is already invalid, don't try to reply
+    if (err && err.code === 10062) {
+      return;
+    }
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        content: 'Error.',
-        ephemeral: true
-      });
+      try {
+        await interaction.reply({
+          content: 'Error.',
+          ephemeral: true
+        });
+      } catch (e) {
+        console.error('⚠️ Failed to send error reply:', e);
+      }
     }
   }
 });
