@@ -26,11 +26,6 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates]
 });
 
-// Single source of truth for the placeholder id
-const PLACEHOLDER_USER_ID = '__NOT_IN_VC__';
-// Human label for placeholder (reused)
-const PLACEHOLDER_LABEL = 'Player not in VC (placeholder)';
-
 /**
  * Dynamic formations: each club can pick one, and we build slots from this.
  * Each array is 11 positions in order (GK first, strikers last).
@@ -262,215 +257,45 @@ const FORMATION_POSITIONS = {
   ]
 };
 
-// Notes split into lines so they render as separate lines in the embed
 const FORMATION_INFO = {
   // 3-at-the-back
-  "3-1-4-2": [
-    'Strengths: Very strong through the middle with a back three plus a screening CDM, good for patient build-up and countering central overloads.',
-    'Weaknesses: Can be exposed in the wide channels if LM/RM don’t track back.',
-    'Best used: When you want two strikers up top and control of the middle third.',
-    'Key players: Mobile, aggressive CBs; a disciplined CDM who reads play well; high-stamina LM/RM; one link-up ST and one runner in behind.'
-  ].join('\n'),
-
-  "3-4-1-2": [
-    'Strengths: Central overload with a CAM behind two strikers, ideal for through balls and quick combinations.',
-    'Weaknesses: Flanks can be vulnerable vs teams with very attacking fullbacks or wide wingers.',
-    'Best used: When you have a playmaking CAM and two complementary forwards.',
-    'Key players: Ball-playing CBs, box-to-box CMs, creative CAM, one target ST and one pacey ST.'
-  ].join('\n'),
-
-  "3-4-2-1": [
-    'Strengths: Very strong between the lines with two CAMs/CFs behind a lone ST, great for tiki-taka and short passing.',
-    'Weaknesses: Only one true striker and no classic wingers, so crosses are less threatening.',
-    'Best used: When you have two creative attackers who like to drift and combine.',
-    'Key players: Composed CBs, hardworking CM pair, two technical CAMs, a complete ST who can hold up and finish.'
-  ].join('\n'),
-
-  "3-4-3": [
-    'Strengths: Super aggressive front three with wide forwards, great for pressing and fast transitions.',
-    'Weaknesses: Midfield can be outnumbered and wingbacks must work hard both ways.',
-    'Best used: When you want to swarm the opponent’s back line and play direct.',
-    'Key players: Fast LW/RW who can score, physical CBs, energetic CMs, clinical ST.'
-  ].join('\n'),
-
-  "3-5-2": [
-    'Strengths: Massive control in midfield with five across and two STs, good for slow build-up or long spells of possession.',
-    'Weaknesses: Width depends heavily on LM/RM; if they don’t track back, flanks are exposed.',
-    'Best used: When you have strong central players and want to dominate the middle.',
-    'Key players: Stamina monsters at LM/RM, two-way CDMs, creative CAM, a target ST plus a runner.'
-  ].join('\n'),
+  "3-1-4-2": `Strengths: Very strong through the middle with a back three plus a screening CDM, good for patient build-up and countering central overloads. Weaknesses: Can be exposed in the wide channels if LM/RM don’t track back. Best used when you want two strikers up top and control of the middle third. Key players: Mobile, aggressive CBs; a disciplined CDM who reads play well; high-stamina LM/RM; one link-up ST and one runner in behind.`,
+  "3-4-1-2": `Strengths: Central overload with a CAM behind two strikers, ideal for through balls and quick combinations. Weaknesses: Flanks can be vulnerable vs teams with very attacking fullbacks or wide wingers. Best used when you have a playmaking CAM and two complementary forwards. Key players: Ball-playing CBs, box-to-box CMs, creative CAM, one target ST and one pacey ST.`,
+  "3-4-2-1": `Strengths: Very strong between the lines with two CAMs/CFs behind a lone ST, great for tiki-taka and short passing. Weaknesses: Only one true striker and no classic wingers, so crosses are less threatening. Best used when you have two creative attackers who like to drift and combine. Key players: Composed CBs, hardworking CM pair, two technical CAMs, a complete ST who can hold up and finish.`,
+  "3-4-3": `Strengths: Super aggressive front three with wide forwards, great for pressing and fast transitions. Weaknesses: Midfield can be outnumbered and wingbacks must work hard both ways. Best used when you want to swarm the opponent’s back line and play direct. Key players: Fast LW/RW who can score, physical CBs, energetic CMs, clinical ST.`,
+  "3-5-2": `Strengths: Massive control in midfield with five across and two STs, good for slow build-up or long spells of possession. Weaknesses: Width depends heavily on LM/RM; if they don’t track back, flanks are exposed. Best used when you have strong central players and want to dominate the middle. Key players: Stamina monsters at LM/RM, two-way CDMs, creative CAM, a target ST plus a runner.`,
 
   // 4-at-the-back, 4-1-x-x and 4-2-x-x shapes
-  "4-1-2-1-2": [
-    'Strengths: Narrow diamond that overloads the center and supports two STs, good for quick one-twos and through balls.',
-    'Weaknesses: Very little natural width, so you can struggle vs compact low blocks.',
-    'Best used: When your fullbacks like to bomb forward and your CAM is a star.',
-    'Key players: Overlapping LB/RB, strong CDM, high-vision CAM, two strikers with good off-the-ball movement.'
-  ].join('\n'),
-
-  "4-1-2-1-2 (2)": [
-    'Strengths: Even more compact diamond with CM/CM, great for short passing and central dominance.',
-    'Weaknesses: Predictable if opponents clog the middle; relies on fullbacks for width.',
-    'Best used: With technically sound CMs and a creative CAM.',
-    'Key players: Press-resistant CMs, smart CDM, playmaking CAM, versatile STs who can drop in.'
-  ].join('\n'),
-
-  "4-1-3-2": [
-    'Strengths: Solid single pivot CDM behind an attacking three and two STs, good for pressing high and playing direct.',
-    'Weaknesses: Only one holding mid, so counters through the middle can be dangerous.',
-    'Best used: When you trust your CDM and want numbers in attack.',
-    'Key players: Strong CDM, balanced LM/RM, CAM/CM with vision, two aggressive strikers.'
-  ].join('\n'),
-
-  "4-1-4-1": [
-    'Strengths: Very stable defensively with a CDM shielding the back four and a compact midfield line of four.',
-    'Weaknesses: Lone ST can get isolated if wide players don’t join quickly.',
-    'Best used: When protecting a lead or playing vs stronger teams.',
-    'Key players: Disciplined CDM, high-work-rate wide mids, box-to-box CMs, a complete ST who can hold up play.'
-  ].join('\n'),
-
-  "4-2-1-3": [
-    'Strengths: Double pivot protects the back four while CAM and front three attack, great balance between defense and offense.',
-    'Weaknesses: CAM can be crowded out if team doesn’t create wide overloads.',
-    'Best used: With quick wingers and a strong central CAM.',
-    'Key players: Two intelligent CDMs, creative CAM, pacey LW/RW, clinical ST.'
-  ].join('\n'),
-
-  "4-2-2-2": [
-    'Strengths: Very strong in central channels with two CAMs and two STs, good for intricate passing and central overloads.',
-    'Weaknesses: Flanks can be open; you rely heavily on fullbacks for width.',
-    'Best used: When your fullbacks are very attacking and your CAMs are creative.',
-    'Key players: Two disciplined CDMs, technical CAMs, overlapping LB/RB, two deadly finishers.'
-  ].join('\n'),
-
-  "4-2-3-1": [
-    'Strengths: One of the most balanced shapes; double pivot for stability plus three attackers behind a ST.',
-    'Weaknesses: Wide CAMs must track back or fullbacks get overloaded.',
-    'Best used: When you have a standout CAM and versatile wide attackers.',
-    'Key players: All-round CDM/CM pair, playmaking central CAM, agile wide CAMs, complete ST.'
-  ].join('\n'),
-
-  "4-2-3-1 (2)": [
-    'Strengths: LM/RM + CAM behind a ST gives natural width and a central creator, good for crosses and cutbacks.',
-    'Weaknesses: If LM/RM don’t work defensively, you can be stretched wide.',
-    'Best used: When you like to attack through the wings.',
-    'Key players: Stamina-heavy wide mids, solid CDM duo, creative CAM, strong aerial ST.'
-  ].join('\n'),
-
-  "4-2-4": [
-    'Strengths: Extremely aggressive with four forwards, ideal for all-out attack and late-game comebacks.',
-    'Weaknesses: Midfield is thin; you’ll be vulnerable to counters and outnumbered centrally.',
-    'Best used: When chasing a goal or vs weaker opponents.',
-    'Key players: Two high-energy CMs, fast LW/RW, poacher ST plus target ST.'
-  ].join('\n'),
+  "4-1-2-1-2": `Strengths: Narrow diamond that overloads the center and supports two STs, good for quick one-twos and through balls. Weaknesses: Very little natural width, so you can struggle vs compact low blocks. Best used when your fullbacks like to bomb forward and your CAM is a star. Key players: Overlapping LB/RB, strong CDM, high-vision CAM, two strikers with good off-the-ball movement.`,
+  "4-1-2-1-2 (2)": `Strengths: Even more compact diamond with CM/CM, great for short passing and central dominance. Weaknesses: Predictable if opponents clog the middle; relies on fullbacks for width. Best used with technically sound CMs and a creative CAM. Key players: Press-resistant CMs, smart CDM, playmaking CAM, versatile STs who can drop in.`,
+  "4-1-3-2": `Strengths: Solid single pivot CDM behind an attacking three and two STs, good for pressing high and playing direct. Weaknesses: Only one holding mid, so counters through the middle can be dangerous. Best used when you trust your CDM and want numbers in attack. Key players: Strong CDM, balanced LM/RM, CAM/CM with vision, two aggressive strikers.`,
+  "4-1-4-1": `Strengths: Very stable defensively with a CDM shielding the back four and a compact midfield line of four. Weaknesses: Lone ST can get isolated if wide players don’t join quickly. Best used when protecting a lead or playing vs stronger teams. Key players: Disciplined CDM, high-work-rate wide mids, box-to-box CMs, a complete ST who can hold up play.`,
+  "4-2-1-3": `Strengths: Double pivot protects the back four while CAM and front three attack, great balance between defense and offense. Weaknesses: CAM can be crowded out if team doesn’t create wide overloads. Best used with quick wingers and a strong central CAM. Key players: Two intelligent CDMs, creative CAM, pacey LW/RW, clinical ST.`,
+  "4-2-2-2": `Strengths: Very strong in central channels with two CAMs and two STs, good for intricate passing and central overloads. Weaknesses: Flanks can be open; you rely heavily on fullbacks for width. Best used when your fullbacks are very attacking and your CAMs are creative. Key players: Two disciplined CDMs, technical CAMs, overlapping LB/RB, two deadly finishers.`,
+  "4-2-3-1": `Strengths: One of the most balanced shapes; double pivot for stability plus three attackers behind a ST. Great for possession or counter-attacks. Weaknesses: Wide CAMs must track back or fullbacks get overloaded. Best used when you have a standout CAM and versatile wide attackers. Key players: All-round CDM/CM pair, playmaking central CAM, agile wide CAMs, complete ST.`,
+  "4-2-3-1 (2)": `Strengths: LM/RM + CAM behind a ST gives natural width and a central creator, good for crosses and cutbacks. Weaknesses: If LM/RM don’t work defensively, you can be stretched wide. Best used when you like to attack through the wings. Key players: Stamina-heavy wide mids, solid CDM duo, creative CAM, strong aerial ST.`,
+  "4-2-4": `Strengths: Extremely aggressive with four forwards, ideal for all-out attack and late-game comebacks. Weaknesses: Midfield is thin; you’ll be vulnerable to counters and outnumbered centrally. Best used when chasing a goal or vs weaker opponents. Key players: Two high-energy CMs, fast LW/RW, poacher ST plus target ST.`,
 
   // 4-3-x-x
-  "4-3-1-2": [
-    'Strengths: Three CMs plus a CAM behind two STs; strong centrally with a natural link between mid and attack.',
-    'Weaknesses: No natural width, so fullbacks must push high.',
-    'Best used: When your midfielders are strong passers and can control tempo.',
-    'Key players: One holding CM, two box-to-box CMs, creative CAM, two complementary strikers.'
-  ].join('\n'),
-
-  "4-3-2-1": [
-    'Strengths: “Christmas tree” structure; two CFs behind a lone ST for heavy central overloads and intricate build-up.',
-    'Weaknesses: Almost no width; can feel cramped versus low blocks.',
-    'Best used: When your attackers prefer to play between lines rather than hugging the touchline.',
-    'Key players: Three balanced CMs, two creative CFs, a complete ST.'
-  ].join('\n'),
-
-  "4-3-3": [
-    'Strengths: Classic all-round shape with three CMs and a front three; great for pressing, possession, and flexible attacking patterns.',
-    'Weaknesses: Middle CM can get overworked if wide forwards don’t defend.',
-    'Best used: When you have strong wingers and a solid midfield triangle.',
-    'Key players: One holding CM, two shuttling CMs, pacey LW/RW, reliable ST.'
-  ].join('\n'),
-
-  "4-3-3 (2)": [
-    'Strengths: CDM + two CMs give extra protection while keeping a dangerous front three; ideal for balanced play.',
-    'Weaknesses: If CMs are too defensive, you can lack creativity.',
-    'Best used: When one player excels as a pure CDM.',
-    'Key players: Destroyer-type CDM, two box-to-box CMs, fast wingers, clinical ST.'
-  ].join('\n'),
-
-  "4-3-3 (3)": [
-    'Strengths: Double pivot plus one CM makes it very solid defensively, great for sitting deeper and countering.',
-    'Weaknesses: Can feel conservative; fewer runners from midfield into the box.',
-    'Best used: Versus stronger teams or fast counters.',
-    'Key players: Two disciplined CDMs, a linking CM, pacey LW/RW, lone ST who can exploit space.'
-  ].join('\n'),
-
-  "4-3-3 (4)": [
-    'Strengths: CM + two CAMs behind a front three makes this very attacking and creative.',
-    'Weaknesses: Defensive cover in midfield is lighter; can be risky if fullbacks push too high.',
-    'Best used: When you want to dominate possession in the final third.',
-    'Key players: One hard-working CM, two creative CAM types, flair LW/RW, top-tier finisher up front.'
-  ].join('\n'),
+  "4-3-1-2": `Strengths: Three CMs plus a CAM behind two STs; strong centrally with a natural link between mid and attack. Weaknesses: No natural width, so fullbacks must push high. Best used when your midfielders are strong passers and can control tempo. Key players: One holding CM, two box-to-box CMs, creative CAM, two complementary strikers.`,
+  "4-3-2-1": `Strengths: “Christmas tree” structure; two CFs behind a lone ST for heavy central overloads and intricate build-up. Weaknesses: Almost no width; can feel cramped versus low blocks. Best used when your attackers prefer to play between lines rather than hugging the touchline. Key players: Three balanced CMs, two creative CFs, a complete ST.`,
+  "4-3-3": `Strengths: Classic all-round shape with three CMs and a front three; great for pressing, possession, and flexible attacking patterns. Weaknesses: Middle CM can get overworked if wide forwards don’t defend. Best used when you have strong wingers and a solid midfield triangle. Key players: One holding CM, two shuttling CMs, pacey LW/RW, reliable ST.`,
+  "4-3-3 (2)": `Strengths: CDM + two CMs give extra protection while keeping a dangerous front three; ideal for balanced play. Weaknesses: If CMs are too defensive, you can lack creativity. Best used when one player excels as a pure CDM. Key players: Destroyer-type CDM, two box-to-box CMs, fast wingers, clinical ST.`,
+  "4-3-3 (3)": `Strengths: Double pivot plus one CM makes it very solid defensively, great for sitting deeper and countering. Weaknesses: Can feel conservative; fewer runners from midfield into the box. Best used vs stronger teams or fast counters. Key players: Two disciplined CDMs, a linking CM, pacey LW/RW, lone ST who can exploit space.`,
+  "4-3-3 (4)": `Strengths: CM + two CAMs behind a front three makes this very attacking and creative. Weaknesses: Defensive cover in midfield is lighter; can be risky if fullbacks push too high. Best used when you want to dominate possession in the final third. Key players: One hard-working CM, two creative CAM types, flair LW/RW, top-tier finisher up front.`,
 
   // 4-4-x-x & 4-5-x
-  "4-4-1-1 (2)": [
-    'Strengths: Solid 4-4-2 base with a CF dropping off the ST for link-up play, good balance between defense and attack.',
-    'Weaknesses: Wide mids must work hard or your fullbacks get exposed.',
-    'Best used: When you have a second striker good at creating and scoring.',
-    'Key players: Two balanced CMs, high-work-rate LM/RM, creative CF, focal-point ST.'
-  ].join('\n'),
-
-  "4-4-2": [
-    'Strengths: Very simple, very balanced: two banks of four and two STs, great for counters and crosses.',
-    'Weaknesses: Outnumbered by 3 or 5-man midfields; can struggle to progress the ball centrally.',
-    'Best used: With strong wide players and two strikers who link well.',
-    'Key players: Disciplined CBs, LM/RM with pace and crossing, one target ST and one runner.'
-  ].join('\n'),
-
-  "4-4-2 (2)": [
-    'Strengths: Double CDM gives excellent central protection while keeping two STs up top.',
-    'Weaknesses: Less creativity from midfield; you’ll rely on flanks and long balls.',
-    'Best used: To protect a lead but still have counter threat.',
-    'Key players: Two strong CDMs, robust CBs, hard-working LM/RM, quick strikers.'
-  ].join('\n'),
-
-  "4-5-1": [
-    'Strengths: Very strong midfield presence with a CAM; good for controlling possession and firing late runs into the box.',
-    'Weaknesses: Lone ST can be isolated if LM/RM stay too deep.',
-    'Best used: When your CAM is a main attacking outlet.',
-    'Key players: Two solid CMs, creative CAM, LM/RM who can cut inside, complete ST.'
-  ].join('\n'),
-
-  "4-5-1 (2)": [
-    'Strengths: Double pivot CDMs + CAM makes it defensively secure while still having a creator.',
-    'Weaknesses: Can feel passive if LM/RM and CAM don’t push high.',
-    'Best used: When you want to sit deeper but still threaten on counters through the middle.',
-    'Key players: Two defensive-minded CDMs, high-energy LM/RM, clever CAM, pacey ST.'
-  ].join('\n'),
+  "4-4-1-1 (2)": `Strengths: Solid 4-4-2 base with a CF dropping off the ST for link-up play, good balance between defense and attack. Weaknesses: Wide mids must work hard or your fullbacks get exposed. Best used when you have a second striker good at creating and scoring. Key players: Two balanced CMs, high-work-rate LM/RM, creative CF, focal-point ST.`,
+  "4-4-2": `Strengths: Very simple, very balanced: two banks of four and two STs, great for counters and crosses. Weaknesses: Outnumbered by 3 or 5-man midfields; can struggle to progress the ball centrally. Best used with strong wide players and two strikers who link well. Key players: Disciplined CBs, LM/RM with pace and crossing, one target ST and one runner.`,
+  "4-4-2 (2)": `Strengths: Double CDM gives excellent central protection while keeping two STs up top. Weaknesses: Less creativity from midfield; you’ll rely on flanks and long balls. Best used to protect a lead but still have counter threat. Key players: Two strong CDMs, robust CBs, hard-working LM/RM, quick strikers.`,
+  "4-5-1": `Strengths: Very strong midfield presence with a CAM; good for controlling possession and firing late runs into the box. Weaknesses: Lone ST can be isolated if wide players stay too deep. Best used when your CAM is a main attacking outlet. Key players: Two solid CMs, creative CAM, LM/RM who can cut inside, complete ST.`,
+  "4-5-1 (2)": `Strengths: Double pivot CDMs + CAM makes it defensively secure while still having a creator. Weaknesses: Can feel passive if LM/RM and CAM don’t push high. Best used when you want to sit deeper but still threaten on counters through the middle. Key players: Two defensive-minded CDMs, high-energy LM/RM, clever CAM, pacey ST.`,
 
   // 5-at-the-back
-  "5-2-1-2": [
-    'Strengths: Three CBs plus wingbacks and a CAM behind two STs; very secure at the back but still dangerous centrally.',
-    'Weaknesses: Can be pinned deep if wingbacks are slow or too defensive.',
-    'Best used: Versus strong opponents or when playing on the counter.',
-    'Key players: Quick LWB/RWB, aerially dominant CBs, two-way CMs, creative CAM, two strikers who can exploit space.'
-  ].join('\n'),
-
-  "5-2-3": [
-    'Strengths: Wingbacks plus a front three make this great for wide counters; very solid defensively.',
-    'Weaknesses: Only two CMs, so you can be overrun centrally.',
-    'Best used: When your wingers and wingbacks are very fast.',
-    'Key players: Pace merchant LWB/RWB, mobile CB trio, hard-working CMs, direct LW/RW, fast ST.'
-  ].join('\n'),
-
-  "5-3-2": [
-    'Strengths: Extremely solid with three CBs and three CMs plus two STs; tough to break down while still having a front two.',
-    'Weaknesses: Width relies fully on wingbacks and can be slow to transition if CMs are too defensive.',
-    'Best used: When protecting leads or playing pragmatic football.',
-    'Key players: Strong CBs, tireless wingbacks, balanced midfield three, two strikers who can hold up and finish.'
-  ].join('\n'),
-
-  "5-4-1": [
-    'Strengths: Very deep and compact, ideal for parking the bus or absorbing pressure.',
-    'Weaknesses: Limited attacking options with one ST and deep wide mids.',
-    'Best used: When you’re outmatched and playing for counters or set pieces.',
-    'Key players: Dominant CB trio, disciplined wingbacks, hard-working LM/RM, a lone ST who can win duels and hold the ball up.'
-  ].join('\n')
+  "5-2-1-2": `Strengths: Three CBs plus wingbacks and a CAM behind two STs; very secure at the back but still dangerous centrally. Weaknesses: Can be pinned deep if wingbacks are slow or too defensive. Best used vs strong opponents or when playing on the counter. Key players: Quick LWB/RWB, aerially dominant CBs, two-way CMs, creative CAM, two strikers who can exploit space.`,
+  "5-2-3": `Strengths: Wingbacks plus a front three make this great for wide counters; very solid defensively. Weaknesses: Only two CMs, so you can be overrun centrally. Best used when your wingers and wingbacks are very fast. Key players: Pace merchant LWB/RWB, mobile CB trio, hard-working CMs, direct LW/RW, fast ST.`,
+  "5-3-2": `Strengths: Extremely solid with three CBs and three CMs plus two STs; tough to break down while still having a front two. Weaknesses: Width relies fully on wingbacks and can be slow to transition if CMs are too defensive. Best used when protecting leads or playing pragmatic football. Key players: Strong CBs, tireless wingbacks, balanced midfield three, two strikers who can hold up and finish.`,
+  "5-4-1": `Strengths: Very deep and compact, ideal for parking the bus or absorbing pressure. Weaknesses: Limited attacking options with one ST and deep wide mids. Best used when you’re outmatched and playing for counters or set pieces. Key players: Dominant CB trio, disciplined wingbacks, hard-working LM/RM, a lone ST who can win duels and hold the ball up.`
 };
 
 const DEFAULT_FORMATION = "4-3-3";
@@ -501,6 +326,37 @@ const COMMANDS = [
       'Create/update a live club spot panel linked to your current voice channel.'
   }
 ];
+
+// ---------- HELPERS ----------
+
+// Make formation notes multi-line and slightly formatted
+function formatFormationInfo(info) {
+  if (!info) return '';
+
+  let txt = info.trim();
+  txt = txt.replace(/Strengths:/, '**Strengths:**');
+  txt = txt.replace(/Weaknesses:/, '\n**Weaknesses:**');
+  txt = txt.replace(/Best used/g, '\n**Best used**');
+  txt = txt.replace(/Key players:/, '\n**Key players:**');
+  return txt;
+}
+
+// Group positions into broad roles so we can remap logically on formation change
+function getPositionGroup(label) {
+  const upper = (label || '').toUpperCase();
+
+  if (upper === 'GK') return 'GK';
+  if (upper === 'CB') return 'CB';
+  if (['LB', 'RB', 'LWB', 'RWB'].includes(upper)) return 'FB';
+  if (upper === 'CDM') return 'CDM';
+  if (upper === 'CM') return 'CM';
+  if (['CAM', 'CF'].includes(upper)) return 'CAM';
+  if (['LM', 'RM'].includes(upper)) return 'WM';
+  if (['LW', 'RW'].includes(upper)) return 'WING';
+  if (upper === 'ST') return 'ST';
+
+  return 'OTHER';
+}
 
 // ---------- PER-GUILD STATE HELPERS ----------
 
@@ -581,7 +437,7 @@ function getClubByKey(clubs, key) {
 }
 
 // Admins or roles with "captain", "manager", "owner", or "media" in the name
-// These are allowed to assign/move/remove players and change formations
+// These are allowed to assign/move/remove players, reset spots, set VC, etc.
 function isManager(member) {
   if (!member) return false;
   // Admin-style permission
@@ -629,7 +485,7 @@ function buildEmbedForClub(guildId, clubKey) {
     if (slot.open) {
       text = 'OPEN';
     } else if (slot.takenBy) {
-      if (slot.takenBy === PLACEHOLDER_USER_ID) {
+      if (slot.takenBy === '__NOT_IN_VC__') {
         text = 'TAKEN by player not in VC';
       } else {
         text = `TAKEN by <@${slot.takenBy}>`;
@@ -653,14 +509,18 @@ function buildEmbedForClub(guildId, clubKey) {
     )
     .setFooter({
       text:
-        'Players: click a spot to claim. Managers can assign/move/remove players and change formations.'
+        'Players: click a spot to claim. Managers can assign/move/remove players, reset spots, and link voice channels.'
     });
 
-  const info = FORMATION_INFO[clubBoard.formation];
-  if (info) {
+  const rawInfo = FORMATION_INFO[clubBoard.formation];
+  if (rawInfo) {
+    const formatted = formatFormationInfo(rawInfo);
+    const value =
+      formatted.length > 1024 ? formatted.slice(0, 1021) + '...' : formatted;
+
     embed.addFields({
       name: 'Formation notes',
-      value: info.length > 1024 ? info.slice(0, 1021) + '...' : info
+      value
     });
   }
 
@@ -701,31 +561,6 @@ function buildButtons(guildId, clubKey) {
   return rows;
 }
 
-// Helper: build numbered slot options for select menus (reused)
-function buildSlotOptions(clubBoard) {
-  const labelCounts = {};
-  clubBoard.slots.forEach((slot) => {
-    labelCounts[slot.label] = (labelCounts[slot.label] || 0) + 1;
-  });
-
-  const seenLabelIndex = {};
-  const options = [];
-  for (let idx = clubBoard.slots.length - 1; idx >= 0; idx--) {
-    const slot = clubBoard.slots[idx];
-    const total = labelCounts[slot.label];
-    let label = slot.label;
-    if (total > 1) {
-      seenLabelIndex[slot.label] = (seenLabelIndex[slot.label] || 0) + 1;
-      label = `${slot.label} (${seenLabelIndex[slot.label]})`;
-    }
-    options.push({
-      label,
-      value: String(idx)
-    });
-  }
-  return options;
-}
-
 // Club select used on the admin/global panels
 function buildClubSelect(guildId, currentClubKey) {
   const state = getGuildState(guildId);
@@ -764,20 +599,6 @@ function buildViewerClubSelect(guildId, selectedKey) {
     );
 
   return new ActionRowBuilder().addComponents(select);
-}
-
-// Viewer components: club select + refresh button
-function buildViewerComponents(guildId, selectedKey) {
-  const selectRow = buildViewerClubSelect(guildId, selectedKey);
-
-  const refreshButton = new ButtonBuilder()
-    .setCustomId(`viewer_refresh_${selectedKey}`)
-    .setLabel('Refresh')
-    .setStyle(ButtonStyle.Secondary);
-
-  const refreshRow = new ActionRowBuilder().addComponents(refreshButton);
-
-  return [selectRow, refreshRow];
 }
 
 // Admin/VC panel components for a specific club
@@ -830,14 +651,19 @@ async function refreshClubPanels(guildId, clubKey) {
   ) {
     try {
       const channel = await client.channels.fetch(state.adminPanelChannelId);
-      const msg = await channel.messages.fetch(state.adminPanelMessageId);
-      await msg.edit({
-        embeds: [buildEmbedForClub(guildId, clubKey)],
-        components: buildAdminComponents(guildId, clubKey)
-      });
+      if (!channel) {
+        state.adminPanelChannelId = null;
+        state.adminPanelMessageId = null;
+      } else {
+        const msg = await channel.messages.fetch(state.adminPanelMessageId);
+        await msg.edit({
+          embeds: [buildEmbedForClub(guildId, clubKey)],
+          components: buildAdminComponents(guildId, clubKey)
+        });
+      }
     } catch (err) {
       if (err.code === 10008) {
-        console.warn('⚠️ Admin panel message missing, clearing stored reference.');
+        // Unknown Message – panel was deleted, clear tracking
         state.adminPanelChannelId = null;
         state.adminPanelMessageId = null;
       } else {
@@ -853,6 +679,11 @@ async function refreshClubPanels(guildId, clubKey) {
 
       try {
         const channel = await client.channels.fetch(panel.textChannelId);
+        if (!channel) {
+          delete state.vcPanels[vcId];
+          continue;
+        }
+
         const msg = await channel.messages.fetch(panel.messageId);
         await msg.edit({
           embeds: [buildEmbedForClub(guildId, clubKey)],
@@ -860,9 +691,7 @@ async function refreshClubPanels(guildId, clubKey) {
         });
       } catch (err) {
         if (err.code === 10008) {
-          console.warn(
-            `⚠️ VC panel message for voice channel ${vcId} is missing, removing panel reference.`
-          );
+          // Unknown Message – message was deleted, drop this panel mapping
           delete state.vcPanels[vcId];
         } else {
           console.error(
@@ -921,7 +750,7 @@ client.on(Events.GuildCreate, async (guild) => {
   }
 });
 
-// ---------- INTERACTIONS ----------
+// ---------- INTERACTION HELPERS ----------
 
 // Helper: start "Assign from VC" flow (manager-only)
 async function startAssignFromVc(interaction, state, clubKey) {
@@ -993,8 +822,8 @@ async function startAssignFromVc(interaction, state, clubKey) {
 
   const options = memberOptions.slice(0, 24);
   options.push({
-    label: PLACEHOLDER_LABEL,
-    value: PLACEHOLDER_USER_ID,
+    label: 'Player not in VC (placeholder)',
+    value: '__NOT_IN_VC__',
     description: 'Use when someone is playing but not connected to voice.'
   });
 
@@ -1040,11 +869,11 @@ async function startManagePlayers(interaction, state, clubKey) {
     const userId = slot.takenBy;
 
     // Handle placeholder specially
-    if (userId === PLACEHOLDER_USER_ID) {
+    if (userId === '__NOT_IN_VC__') {
       if (seen.has(userId)) continue;
       seen.add(userId);
       options.push({
-        label: PLACEHOLDER_LABEL,
+        label: 'Player not in VC (placeholder)',
         value: userId,
         description: 'Placeholder for someone not in voice'
       });
@@ -1058,7 +887,7 @@ async function startManagePlayers(interaction, state, clubKey) {
     try {
       const member = await interaction.guild.members.fetch(userId);
       label = member.displayName || member.user.username || userId;
-    } catch {
+    } catch (err) {
       // ignore fetch error, just keep userId
     }
 
@@ -1188,40 +1017,124 @@ async function doResetSpots(interaction, state, guildId, clubKey) {
   });
 }
 
-// Helper: set formation and rebuild slots (manager-only)
-// Uses deferUpdate to avoid Unknown interaction (10062) when refresh work is slow
+// Helper: set formation and try to keep players in logical spots (open to everyone)
 async function setClubFormation(interaction, guildId, clubKey, formationName) {
-  if (!isManager(interaction.member)) {
-    return interaction.reply({
-      content:
-        'Only captains, managers, owners, media, or admins can change formations.',
-      ephemeral: true
-    });
-  }
-
   const state = getGuildState(guildId);
   if (!state) {
-    return interaction.reply({
-      content: 'Guild state not found.',
-      ephemeral: true
-    });
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        content: 'Guild state not found.',
+        ephemeral: true
+      });
+    }
+    return;
   }
 
   const positions = FORMATION_POSITIONS[formationName];
   if (!positions) {
-    return interaction.reply({
-      content: 'Unknown formation.',
-      ephemeral: true
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        content: 'Unknown formation.',
+        ephemeral: true
+      });
+    }
+    return;
+  }
+
+  // Acknowledge this interaction so it doesn't expire
+  if (!interaction.deferred && !interaction.replied) {
+    try {
+      await interaction.deferUpdate();
+    } catch (err) {
+      console.error('⚠️ Error deferring formation change interaction:', err);
+    }
+  }
+
+  const oldBoard = state.boardState[clubKey];
+  const oldSlots = oldBoard?.slots || [];
+
+  // Collect all current occupants from the old board
+  const occupants = [];
+  for (const slot of oldSlots) {
+    if (!slot || slot.open || !slot.takenBy) continue;
+    occupants.push({
+      playerId: slot.takenBy,
+      label: slot.label,
+      group: getPositionGroup(slot.label)
     });
   }
 
-  // Acknowledge quickly so the interaction doesn't expire
-  await interaction.deferUpdate();
+  // Build new board with the new formation
+  const newBoard = {
+    formation: formationName,
+    slots: positions.map((label) => ({
+      label,
+      open: true,
+      takenBy: null
+    }))
+  };
+
+  const newSlots = newBoard.slots;
+  const usedIndices = new Set();
+
+  // Priority for groups so we place GK/backs/mids/forwards in a sensible order
+  const groupOrder = ['GK', 'CB', 'FB', 'CDM', 'CM', 'CAM', 'WM', 'WING', 'ST', 'OTHER'];
+  const groupPriority = {};
+  groupOrder.forEach((g, i) => {
+    groupPriority[g] = i;
+  });
+
+  // Place more "specialized" spots first (GK/CB/etc)
+  occupants.sort((a, b) => {
+    const pa = groupPriority[a.group] ?? 999;
+    const pb = groupPriority[b.group] ?? 999;
+    return pa - pb;
+  });
+
+  function findExactIndex(label) {
+    for (let i = 0; i < newSlots.length; i++) {
+      if (usedIndices.has(i)) continue;
+      if (newSlots[i].label === label) return i;
+    }
+    return -1;
+  }
+
+  function findGroupIndex(group) {
+    for (let i = 0; i < newSlots.length; i++) {
+      if (usedIndices.has(i)) continue;
+      if (getPositionGroup(newSlots[i].label) === group) return i;
+    }
+    return -1;
+  }
+
+  function findAnyIndex() {
+    for (let i = 0; i < newSlots.length; i++) {
+      if (!usedIndices.has(i)) return i;
+    }
+    return -1;
+  }
+
+  // Try to keep everyone in the closest possible role
+  for (const occ of occupants) {
+    let idx = findExactIndex(occ.label);          // 1) Same label (CB -> CB, ST -> ST)
+    if (idx === -1 && occ.group) {
+      idx = findGroupIndex(occ.group);            // 2) Same group (LB -> FB, CAM -> CAM/CF)
+    }
+    if (idx === -1) {
+      idx = findAnyIndex();                       // 3) Fall back to any open slot
+    }
+
+    if (idx !== -1) {
+      newSlots[idx].open = false;
+      newSlots[idx].takenBy = occ.playerId;       // Works for real players + "__NOT_IN_VC__"
+      usedIndices.add(idx);
+    }
+  }
 
   // Preserve VC link when changing formation
   const oldVcId = state.clubVcLinks?.[clubKey] || null;
 
-  state.boardState[clubKey] = createEmptyBoardForFormation(formationName);
+  state.boardState[clubKey] = newBoard;
   if (!state.clubVcLinks) state.clubVcLinks = {};
   state.clubVcLinks[clubKey] = oldVcId;
 
@@ -1231,12 +1144,20 @@ async function setClubFormation(interaction, guildId, clubKey, formationName) {
     console.error('⚠️ Error refreshing panels after formation change:', err);
   }
 
-  // Ephemeral confirmation
-  await interaction.followUp({
-    content: `Formation for this club is now **${formationName}**. All spots have been reset.`,
-    ephemeral: true
-  });
+  // Ephemeral confirmation; safe to ignore if interaction already expired
+  try {
+    await interaction.followUp({
+      content: `Formation for this club is now **${formationName}**. Current players were moved into the closest matching spots.`,
+      ephemeral: true
+    });
+  } catch (err) {
+    if (err.code !== 10062) {
+      console.error('⚠️ Error sending formation change follow-up:', err);
+    }
+  }
 }
+
+// ---------- MAIN INTERACTION HANDLER ----------
 
 client.on(Events.InteractionCreate, async (interaction) => {
   try {
@@ -1277,7 +1198,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         return interaction.reply({
           embeds: [buildEmbedForClub(guildId, key)],
-          components: buildViewerComponents(guildId, key),
+          components: [buildViewerClubSelect(guildId, key)],
           ephemeral: false
         });
       }
@@ -1329,23 +1250,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       const { clubs: clubsBtn, boardState: boardStateBtn } = stateBtn;
       const id = interaction.customId;
-
-      // Viewer: manual refresh button for /spots board
-      if (id.startsWith('viewer_refresh_')) {
-        const clubKey = id.substring('viewer_refresh_'.length);
-        const club = getClubByKey(stateBtn.clubs, clubKey);
-        if (!club || !club.enabled) {
-          return interaction.reply({
-            content: 'Unknown or disabled club to refresh.',
-            ephemeral: true
-          });
-        }
-
-        return interaction.update({
-          embeds: [buildEmbedForClub(guildIdBtn, clubKey)],
-          components: buildViewerComponents(guildIdBtn, clubKey)
-        });
-      }
 
       // Rename club (opens modal)
       if (id.startsWith('rename_club_')) {
@@ -1483,7 +1387,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
               value: 'set_vc'
             },
             {
-              label: 'Refresh this club panel',
+              label: 'Refresh panel',
               value: 'refresh'
             }
           );
@@ -1497,17 +1401,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Formation menu button (manager-only, opens ephemeral selects grouped by style)
+      // Formation menu button (now open to everyone)
       if (id.startsWith('formation_menu_')) {
         const clubKey = id.substring('formation_menu_'.length);
-
-        if (!isManager(interaction.member)) {
-          return interaction.reply({
-            content:
-              'Only captains, managers, owners, media, or admins can change formations.',
-            ephemeral: true
-          });
-        }
 
         const clubBoard =
           boardState[clubKey] || createEmptyBoardForFormation(DEFAULT_FORMATION);
@@ -1551,7 +1447,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         return interaction.reply({
           content:
-            'Choose a formation. Changing formation will reset all spots to OPEN for this club.',
+            'Choose a formation. Current players will be moved into the closest matching spots.',
           components: rows,
           ephemeral: true
         });
@@ -1581,7 +1477,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
               vcChannel =
                 interaction.guild.channels.cache.get(vcId) ||
                 (await interaction.guild.channels.fetch(vcId));
-            } catch {
+            } catch (err) {
               // ignore; vcChannel remains null
             }
 
@@ -1677,7 +1573,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    // ----- Dropdowns -----
+    // ----- Dropdowns (club select, viewer select, player tools, assignment selects, vcspots, formation select, manage players, set VC) -----
     if (interaction.isStringSelectMenu()) {
       const id = interaction.customId;
       const guildIdSel = interaction.guildId;
@@ -1697,7 +1593,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         return interaction.update({
           embeds: [buildEmbedForClub(guildIdSel, selectedKey)],
-          components: buildViewerComponents(guildIdSel, selectedKey)
+          components: [buildViewerClubSelect(guildIdSel, selectedKey)]
         });
       }
 
@@ -1733,25 +1629,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         if (choice === 'assign') {
           return startAssignFromVc(interaction, stateSel, clubKey);
-        } else if (choice === 'manage') {
+        }
+        if (choice === 'manage') {
           return startManagePlayers(interaction, stateSel, clubKey);
-        } else if (choice === 'reset') {
+        }
+        if (choice === 'reset') {
           return doResetSpots(interaction, stateSel, guildIdSel, clubKey);
-        } else if (choice === 'set_vc') {
+        }
+        if (choice === 'set_vc') {
           return startSetClubVc(interaction, stateSel, clubKey);
-        } else if (choice === 'refresh') {
-          const club = getClubByKey(stateSel.clubs, clubKey);
-          if (!club) {
-            return interaction.update({
-              content: 'Unknown club to refresh.',
-              components: []
-            });
-          }
-
+        }
+        if (choice === 'refresh') {
           await refreshClubPanels(guildIdSel, clubKey);
-
           return interaction.update({
-            content: `Refreshed all panels for **${club.name}**.`,
+            content: 'Panel refreshed.',
             components: []
           });
         }
@@ -1818,7 +1709,27 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        const options = buildSlotOptions(clubBoard);
+        // Build slot options with numbering if duplicate labels
+        const labelCounts = {};
+        clubBoard.slots.forEach((slot) => {
+          labelCounts[slot.label] = (labelCounts[slot.label] || 0) + 1;
+        });
+
+        const seenLabelIndex = {};
+        const options = [];
+        for (let idx = clubBoard.slots.length - 1; idx >= 0; idx--) {
+          const slot = clubBoard.slots[idx];
+          const total = labelCounts[slot.label];
+          let label = slot.label;
+          if (total > 1) {
+            seenLabelIndex[slot.label] = (seenLabelIndex[slot.label] || 0) + 1;
+            label = `${slot.label} (${seenLabelIndex[slot.label]})`;
+          }
+          options.push({
+            label,
+            value: String(idx)
+          });
+        }
 
         const posSelect = new StringSelectMenuBuilder()
           .setCustomId(`assign_player_pos_${clubKey}_${userId}`)
@@ -1829,7 +1740,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         return interaction.update({
           content: `Now pick a spot for ${
-            userId === PLACEHOLDER_USER_ID ? PLACEHOLDER_LABEL : `<@${userId}>`
+            userId === '__NOT_IN_VC__' ? 'a player not in VC (placeholder)' : `<@${userId}>`
           } in **${club.name}**:`,
           components: [row]
         });
@@ -1882,8 +1793,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await refreshClubPanels(guildIdSel, clubKey);
 
         const playerLabel =
-          userId === PLACEHOLDER_USER_ID
-            ? PLACEHOLDER_LABEL
+          userId === '__NOT_IN_VC__'
+            ? 'a player not in VC (placeholder)'
             : `<@${userId}>`;
 
         return interaction.update({
@@ -1988,7 +1899,27 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        const options = buildSlotOptions(clubBoard);
+        // Build slot options with numbering if duplicate labels
+        const labelCounts = {};
+        clubBoard.slots.forEach((slot) => {
+          labelCounts[slot.label] = (labelCounts[slot.label] || 0) + 1;
+        });
+
+        const seenLabelIndex = {};
+        const options = [];
+        for (let idx = clubBoard.slots.length - 1; idx >= 0; idx--) {
+          const slot = clubBoard.slots[idx];
+          const total = labelCounts[slot.label];
+          let label = slot.label;
+          if (total > 1) {
+            seenLabelIndex[slot.label] = (seenLabelIndex[slot.label] || 0) + 1;
+            label = `${slot.label} (${seenLabelIndex[slot.label]})`;
+          }
+          options.push({
+            label,
+            value: String(idx)
+          });
+        }
 
         options.push({
           label: 'Remove from all spots',
@@ -2004,7 +1935,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         return interaction.update({
           content: `Manage ${
-            userId === PLACEHOLDER_USER_ID
+            userId === '__NOT_IN_VC__'
               ? 'the player not in VC placeholder'
               : `<@${userId}>`
           } in **${club.name}**:`,
@@ -2067,7 +1998,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await refreshClubPanels(guildIdSel, clubKey);
 
         if (choice === '__REMOVE__') {
-          if (userId === PLACEHOLDER_USER_ID) {
+          if (userId === '__NOT_IN_VC__') {
             return interaction.update({
               content: `Removed the "player not in VC" placeholder from all spots in **${club.name}**.`,
               components: []
@@ -2082,7 +2013,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           const slotIndex = parseInt(choice, 10);
           const newSlot = clubBoard.slots[slotIndex];
           const movedLabel =
-            userId === PLACEHOLDER_USER_ID
+            userId === '__NOT_IN_VC__'
               ? 'the player not in VC placeholder'
               : `<@${userId}>`;
 
@@ -2093,21 +2024,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
       }
 
-      // Formation selection (manager-only) – grouped selects
+      // Formation selection (everyone) – grouped selects
       if (id.startsWith('formation_select_')) {
         const parts = id.split('_'); // ['formation','select',clubKey,groupId]
         const clubKey = parts[2];
         const formationName = interaction.values[0];
-        await setClubFormation(interaction, guildIdSel, clubKey, formationName);
-        return;
+        return setClubFormation(interaction, guildIdSel, clubKey, formationName);
       }
     }
   } catch (err) {
     console.error('❌ Error handling interaction:', err);
-    // If the interaction is already invalid, don't try to reply
-    if (err && err.code === 10062) {
-      return;
-    }
     if (!interaction.replied && !interaction.deferred) {
       try {
         await interaction.reply({
@@ -2115,18 +2041,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
           ephemeral: true
         });
       } catch (e) {
-        console.error('⚠️ Failed to send error reply:', e);
+        // ignore
       }
     }
   }
 });
 
-// When someone leaves or moves voice, clear any slots they held in any club
+// When someone leaves voice, clear any slots they held in any club
 client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
   try {
-    if (!oldState.guild) return;
-    // Only act when they were previously in *a* voice channel and now changed channels (or left)
-    if (!oldState.channelId || oldState.channelId === newState.channelId) return;
+    if (!oldState.guild || !oldState.channelId) return;
+    // If they are still in *some* voice channel (moved), don’t clear yet
+    if (newState.channelId) return;
 
     const guildId = oldState.guild.id;
     const state = getGuildState(guildId);
