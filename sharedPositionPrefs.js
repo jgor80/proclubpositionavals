@@ -4,6 +4,7 @@ const path = require('path');
 
 const DATA_FILE = path.join(__dirname, 'positionPrefsData.json');
 
+// store = { [guildId]: { [userId]: { prefs: string[], updatedAt: ISOString } } }
 let store = {};
 
 // Load existing data (best-effort)
