@@ -27,278 +27,702 @@ const client = new Client({
 });
 
 /**
- * Dynamic formations: each club can pick one, and we build slots from this.
- * Each array is 11 positions in order (GK first, strikers last).
+ * Dynamic formations: definitions with metadata. We derive
+ * position lists & notes from this.
  */
-const FORMATION_POSITIONS = {
-  // 3-at-the-back
-  "3-1-4-2": [
-    "GK",
-    "CB", "CB", "CB",
-    "CDM",
-    "LM", "CM", "CM", "RM",
-    "ST", "ST"
-  ],
+const FORMATION_DEFINITIONS = [
+  {
+    formation_name: "4-5-1 ATTACK",
+    formation_pattern: "4-5-1",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Midfield" },
+      { abbreviation: "LM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "RM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Overloads the midfield, providing exceptional passing triangles and ball retention capabilities.",
+      weakness: "Relies heavily on the single ST and can lack direct penetration when the midfield is compact.",
+      best_use: "Possession-based play against narrow defensive formations, forcing opponent fullbacks to commit high.",
+      key_player_style: "High Passing/Vision CAMs; patient, controlled build-up play."
+    }
+  },
+  {
+    formation_name: "4-3-2-1",
+    formation_pattern: "4-3-2-1",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attack/Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attack/Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Creates central attacking threats with three narrow forwards (CFs) and central midfield dominance.",
+      weakness: "Vulnerable to wide attacks as the attacking players offer no natural width defensively.",
+      best_use: "Counter-attacking or high-press strategy focusing play entirely through the middle.",
+      key_player_style: "Quick, highly mobile attackers; central CMs must have high defensive work rates."
+    }
+  },
+  {
+    formation_name: "4-3-1-2",
+    formation_pattern: "4-3-1-2",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attack/Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Excellent for 1-2 passing and quick combination play between the three attacking players (2 ST, 1 CAM).",
+      weakness: "Zero natural width in attack, making it predictable if opponents defend centrally well.",
+      best_use: "Exploiting center-back spacing and leveraging quick vertical passes from the CAM.",
+      key_player_style: "Technically gifted CAM with high dribbling; fullbacks must provide width on attack."
+    }
+  },
+  {
+    formation_name: "4-3-3 FLAT",
+    formation_pattern: "4-3-3",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "LW", role: "Winger", spatial_location: "Attack" },
+      { abbreviation: "RW", role: "Winger", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Perfectly balanced structure with natural width in attack and three central midfielders for stability.",
+      weakness: "Central defense can be exposed if the CMs push too high without a designated defensive anchor.",
+      best_use: "All-around strategy, suitable for both short passing and quick breaks down the wings.",
+      key_player_style: "Rapid Wingers for stretching the defense; CMs need balanced stats to cover attack and defense."
+    }
+  },
+  {
+    formation_name: "3-5-2",
+    formation_pattern: "3-5-2",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Midfield" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Midfield" },
+      { abbreviation: "LM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "RM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Central defensive solidity with three CBs and midfield superiority due to five central players.",
+      weakness: "Highly dependent on the LM/RM tracking back, as fullbacks are absent, creating large gaps out wide.",
+      best_use: "Overwhelming the central opponent midfield and using LM/RM for crosses/cutbacks.",
+      key_player_style: "LM/RM with high stamina and pace (work rate M/H or H/H); CAM linking the two strikers."
+    }
+  },
+  {
+    formation_name: "3-1-4-2",
+    formation_pattern: "3-1-4-2",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "LM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "RM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "The single CDM acts as a crucial shield, while the 4-man midfield provides high attacking versatility and numbers.",
+      weakness: "If the wingers (LM/RM) don't defend, the gaps between them and the CBs are huge.",
+      best_use: "Attacking football where the two strikers and four midfielders constantly rotate positions.",
+      key_player_style: "CDM must have high defensive work rate and tackling; STs should be good link-up players."
+    }
+  },
+  {
+    formation_name: "3-4-2-1",
+    formation_pattern: "3-4-2-1",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "LM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "RM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attack/Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attack/Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Compact central diamond (2 CMs, 2 CAMs) for passing, with wingers providing immediate crossing options.",
+      weakness: "The CMs can be exposed to central pressure, lacking a dedicated CDM anchor.",
+      best_use: "High-pressure offense, pushing the two CAMs into 'false nine' positions to support the ST.",
+      key_player_style: "CAMs with good shooting ability; CMs need stamina to support the defensive line."
+    }
+  },
+  {
+    formation_name: "3-4-1-2",
+    formation_pattern: "3-4-1-2",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "LM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "RM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attack/Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Central congestion and two strikers create constant overloads and short passing options in the final third.",
+      weakness: "Relies entirely on the LM/RM to cover the flanks, leaving the wide CBs vulnerable on counters.",
+      best_use: "Aggressive, high-tempo attack aimed at scoring quick goals and maintaining pressure.",
+      key_player_style: "CAM with high agility and balance to distribute the ball quickly to the two STs."
+    }
+  },
+  {
+    formation_name: "3-4-3 FLAT",
+    formation_pattern: "3-4-3",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "LM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "RM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "LW", role: "Winger", spatial_location: "Attack" },
+      { abbreviation: "RW", role: "Winger", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Maximizes attacking width with three dedicated attackers and two wide midfielders creating five forward threats.",
+      weakness: "The two central midfielders are easily overrun by formations with three CMs or a dedicated CDM.",
+      best_use: "Against defensive opponents where high pressure and crossing are vital to break down the defense.",
+      key_player_style: "Wingers (LW/RW) with high pace and crossing ability; CBs must be fast to cover wide runs."
+    }
+  },
+  {
+    formation_name: "4-2-2-2",
+    formation_pattern: "4-2-2-2",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attacking Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attacking Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Extremely balanced and meta-friendly, using two CDMs for defense and two wide CAMs for attack and recovery.",
+      weakness: "If the wide CAMs fail to track back, the fullbacks are constantly double-teamed defensively.",
+      best_use: "Overall stability and versatility, facilitating both quick counter-attacks and disciplined defense.",
+      key_player_style: "CDMs with high defensive awareness; wide CAMs (RM/LM roles) must be pacey."
+    }
+  },
+  {
+    formation_name: "4-5-1 FLAT",
+    formation_pattern: "4-5-1",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "LM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "RM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Midfield possession machine that minimizes central space for the opponent and ensures defensive cover.",
+      weakness: "Very slow to transition into attack due to the deep midfield line and reliance on a lone striker.",
+      best_use: "Controlling the tempo, neutralizing high-press teams, and maintaining a high percentage of possession.",
+      key_player_style: "High-dribbling/control ST; central CMs must have high passing ability."
+    }
+  },
+  {
+    formation_name: "4-1-2-1-2 WIDE",
+    formation_pattern: "4-1-2-1-2",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "LM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "RM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attacking Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Combines central penetration with immediate wide options from the LM/RM for crosses.",
+      weakness: "The two wide midfielders (LM/RM) can be easily isolated, leading to defensive confusion on the flanks.",
+      best_use: "Balanced approach, quickly moving the ball wide after winning it in the central midfield zone.",
+      key_player_style: "CDM is the defensive linchpin; LM/RM must have high pace and good passing range."
+    }
+  },
+  {
+    formation_name: "4-1-2-1-2 NARROW",
+    formation_pattern: "4-1-2-1-2",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attacking Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Highly meta-relevant due to central defensive compactness and rapid combination play between the CMs, CAM, and STs.",
+      weakness: "Provides zero attacking width, relying solely on fullbacks for crossing and stretching the opponent.",
+      best_use: "Quick, vertical, central tiki-taka passing and through-balls to the two strikers.",
+      key_player_style: "Fullbacks with pace and high offensive work rates; all central players need high agility."
+    }
+  },
+  {
+    formation_name: "4-4-2 FLAT",
+    formation_pattern: "4-4-2",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "LM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "RM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Simple, defensively sound structure where lines are rarely broken, providing clear defensive assignments.",
+      weakness: "The gap between the midfield and two strikers can be large, isolating the attack.",
+      best_use: "Holding a lead or playing defensively compact, forcing the opponent wide to cross.",
+      key_player_style: "Balanced CMs for cover; one ST for link-up, the other for runs in behind."
+    }
+  },
+  {
+    formation_name: "4-3-3 HOLDING",
+    formation_pattern: "4-3-3",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "LW", role: "Winger", spatial_location: "Attack" },
+      { abbreviation: "RW", role: "Winger", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "The CDM offers superb protection for the back four, making it difficult to pass through the center.",
+      weakness: "The two CMs are primarily box-to-box, potentially leaving the CDM isolated if they push too high.",
+      best_use: "Defensively sound play with quick release to the wingers for fast counter-attacks.",
+      key_player_style: "High Defensive Awareness CDM; high pace LW/RW."
+    }
+  },
+  {
+    formation_name: "4-4-1-1 MIDFIELD",
+    formation_pattern: "4-4-1-1",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "LM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "RM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attacking Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "The CAM links the deep midfield four to the single striker perfectly, facilitating smooth transitions.",
+      weakness: "The single ST can be easily neutralized, making goal scoring dependent on the CAM's shooting or the wingers' crosses.",
+      best_use: "Balanced control; effective at overloading the flanks and using the CAM to play through balls.",
+      key_player_style: "Technically creative CAM; ST with high positioning and finishing."
+    }
+  },
+  {
+    formation_name: "4-2-4",
+    formation_pattern: "4-2-4",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "LW", role: "Winger", spatial_location: "Attack/Midfield" },
+      { abbreviation: "RW", role: "Winger", spatial_location: "Attack/Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Ultimate attacking formation, creating massive overloads with four forward players and immediate pressure on the opponent's defense.",
+      weakness: "Only two central midfielders, leaving the back four extremely exposed to quick central counter-attacks.",
+      best_use: "When chasing a deficit or playing against a very passive defense to maintain constant pressure.",
+      key_player_style: "High-stamina CMs to cover space; all four attackers must be pacey finishers."
+    }
+  },
+  {
+    formation_name: "4-4-2 HOLDING",
+    formation_pattern: "4-4-2",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "LM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "RM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Incredible central defensive solidity and pressing capability with two CDMs and a tight defensive line.",
+      weakness: "Lack of creative midfield roles (no CAM), relying only on wingers and strikers for offense.",
+      best_use: "Countering narrow formations (like 4-1-2-1-2 Narrow) and suffocating central passing lanes.",
+      key_player_style: "CDMs with high physical stats and tackling; pacey STs for quick breaks."
+    }
+  },
+  {
+    formation_name: "4-3-3 DEFEND",
+    formation_pattern: "4-3-3",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "LW", role: "Winger", spatial_location: "Attack" },
+      { abbreviation: "RW", role: "Winger", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Features two CDMs for an unbreakable defensive spine, making it highly secure against central threats.",
+      weakness: "The two CDMs can struggle to provide sufficient support for the single CM in link-up play.",
+      best_use: "Maintaining a lead or playing defensively against skilled central attackers.",
+      key_player_style: "CM needs excellent passing to bypass the CDMs and reach the front three; CDMs must have high defensive work rates."
+    }
+  },
+  {
+    formation_name: "4-2-1-3",
+    formation_pattern: "4-2-1-3",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attacking Midfield" },
+      { abbreviation: "LW", role: "Winger", spatial_location: "Attack" },
+      { abbreviation: "RW", role: "Winger", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Optimal structure for defense (2 CDMs) and attack (1 CAM, 3 Forwards), creating a clear separation of duties.",
+      weakness: "The midfield area between the CAM and CDMs can become isolated if they don't manually cover the space.",
+      best_use: "High-powered offense delivered through the flanks, supported by the CAM for central incision.",
+      key_player_style: "The CAM must be the primary creator; Wingers and ST need pace and clinical finishing."
+    }
+  },
+  {
+    formation_name: "5-4-1 FLAT",
+    formation_pattern: "5-4-1",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "LM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "RM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "The most defensively secure formation with a five-man back line and five midfielders/wingers providing cover.",
+      weakness: "Extremely passive in attack, relying on slow build-up or long balls to the single, isolated striker.",
+      best_use: "Protecting a late lead, time-wasting, or against opponents with two highly threatening strikers.",
+      key_player_style: "CBs must have good passing stats to transition; ST needs strength and jumping for hold-up play."
+    }
+  },
+  {
+    formation_name: "5-2-1-2",
+    formation_pattern: "5-2-1-2",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attacking Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Provides defensive structure (5-back) while offering central attacking prowess through the CAM and two STs.",
+      weakness: "Limited central midfield options, making it vulnerable to opponent passing through the middle third.",
+      best_use: "Counter-attacking, using the fullbacks/wingbacks (LB/RB) to fly up the flanks and cross to the two strikers.",
+      key_player_style: "High-stamina Fullbacks for covering the entire flank; CAM must have good vision."
+    }
+  },
+  {
+    formation_name: "4-1-3-2",
+    formation_pattern: "4-1-3-2",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "LM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "RM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "The three-man midfield line (LM, CM, RM) can overwhelm the opponent's center, while the CDM protects the defense.",
+      weakness: "The single CM is left to cover a massive amount of central space alone.",
+      best_use: "Dominating the wide midfield areas and quickly feeding the ball to the two strikers.",
+      key_player_style: "CDM needs high defensive work rate; LM/RM should have excellent crossing and cutback skills."
+    }
+  },
+  {
+    formation_name: "4-3-3 ATTACK",
+    formation_pattern: "4-3-3",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Wingback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Wingback", spatial_location: "Defense" },
+      { abbreviation: "CM", role: "Playmaker Build-Up", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Playmaker Defend", spatial_location: "Midfield" },
+      { abbreviation: "CAM", role: "Playmaker Roaming", spatial_location: "Midfield" },
+      { abbreviation: "LW", role: "Winger Attack", spatial_location: "Attack" },
+      { abbreviation: "RW", role: "Winger Versatile", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Get Forward Attack", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "The dedicated attacking roles and high positioning of the central three create constant vertical threat.",
+      weakness: "Only two CBs at the back with attacking fullbacks, leaving big spaces in the defensive wide areas.",
+      best_use: "High-risk, high-reward attacking football, best suited for skilled players who can utilize custom tactics and player runs.",
+      key_player_style: "CAM must be the team's primary Playmaker; all forward players need high finishing and pace."
+    }
+  },
+  {
+    formation_name: "4-2-3-1 WIDE",
+    formation_pattern: "4-2-3-1",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "LM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "RM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attacking Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Excellent meta balance, using two CDMs for security, a CAM for creativity, and wide midfielders for flanking attacks.",
+      weakness: "The front four (LM, CAM, RM, ST) can be isolated if the CDMs are slow to release the ball forward.",
+      best_use: "Controlling the game, dictating tempo, and launching attacks down the wings.",
+      key_player_style: "CDMs should be defensive masters; CAM needs high passing and long-shot capability."
+    }
+  },
+  {
+    formation_name: "4-2-3-1 NARROW",
+    formation_pattern: "4-2-3-1",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attacking Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attacking Midfield" },
+      { abbreviation: "CAM", role: "Playmaker", spatial_location: "Attacking Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Massive central passing options with four attacking players close to the ST, allowing for intricate combination play.",
+      weakness: "Complete lack of width, making it easy for the opponent to defend by shifting their defense laterally.",
+      best_use: "Attacking possession strategy, constantly passing short and using through balls to the lone striker.",
+      key_player_style: "Fullbacks must be set to overlap; central CAMs need high dribbling and movement."
+    }
+  },
+  {
+    formation_name: "5-3-2 HOLDING",
+    formation_pattern: "5-3-2",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Maximum defensive security (5-back + 1 CDM) ensures the entire central pitch is covered defensively.",
+      weakness: "The two CMs are heavily burdened with both attacking and defensive duties on the flanks.",
+      best_use: "Counter-attacking with pacey strikers and disciplined defense against top-tier opponents.",
+      key_player_style: "High passing/vision CDM to launch quick counter-attacks; STs with pace."
+    }
+  },
+  {
+    formation_name: "4-1-4-1",
+    formation_pattern: "4-1-4-1",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CDM", role: "Holding", spatial_location: "Defensive Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "LM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "RM", role: "Winger", spatial_location: "Midfield" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "Solid defensive block with a dedicated CDM and four midfielders creating two lines of four in defense.",
+      weakness: "The single striker lacks immediate support from the midfield, leading to slow offensive pressure.",
+      best_use: "Maintaining defensive shape and patiently building possession through the central midfield.",
+      key_player_style: "CDM with high defensive work rate; Wingers (LM/RM) need high stamina for defense and attack."
+    }
+  },
+  {
+    formation_name: "5-2-3",
+    formation_pattern: "5-2-3",
+    positions: [
+      { abbreviation: "GK", role: "Goalkeeper", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "CB", role: "Defender", spatial_location: "Defense" },
+      { abbreviation: "LB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "RB", role: "Fullback", spatial_location: "Defense" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "CM", role: "Box-to-Box", spatial_location: "Midfield" },
+      { abbreviation: "LW", role: "Winger", spatial_location: "Attack" },
+      { abbreviation: "RW", role: "Winger", spatial_location: "Attack" },
+      { abbreviation: "ST", role: "Advanced Forward", spatial_location: "Attack" }
+    ],
+    meta_analysis: {
+      strength: "The three-man attack ensures high pressure on the opponent's back line, supported by a solid five-man defense.",
+      weakness: "Only two CMs means the midfield can be easily bypassed or overrun by three-man central midfield systems.",
+      best_use: "Wing-play focused attacks, using the fullbacks and wingers to deliver balls to the striker.",
+      key_player_style: "Fullbacks/Wingbacks (LB/RB) with pace and good crossing; CMs need high defensive work rates."
+    }
+  }
+];
 
-  "3-4-1-2": [
-    "GK",
-    "CB", "CB", "CB",
-    "LM", "CM", "CM", "RM",
-    "CAM",
-    "ST", "ST"
-  ],
+// Derived: name -> position abbreviations
+const FORMATION_POSITIONS = {};
+// Derived: name -> formatted meta info string
+const FORMATION_INFO = {};
 
-  "3-4-2-1": [
-    "GK",
-    "CB", "CB", "CB",
-    "LM", "CM", "CM", "RM",
-    "CAM", "CAM",
-    "ST"
-  ],
+for (const def of FORMATION_DEFINITIONS) {
+  const name = def.formation_name;
+  FORMATION_POSITIONS[name] = def.positions.map((p) => p.abbreviation);
 
-  "3-4-3": [
-    "GK",
-    "CB", "CB", "CB",
-    "LM", "CM", "CM", "RM",
-    "LW", "ST", "RW"
-  ],
+  const meta = def.meta_analysis || {};
+  const parts = [
+    meta.strength ? `Strengths: ${meta.strength}` : '',
+    meta.weakness ? `Weaknesses: ${meta.weakness}` : '',
+    meta.best_use ? `Best used: ${meta.best_use}` : '',
+    meta.key_player_style ? `Key players: ${meta.key_player_style}` : ''
+  ].filter(Boolean);
 
-  "3-5-2": [
-    "GK",
-    "CB", "CB", "CB",
-    "LM", "CDM", "CAM", "CDM", "RM",
-    "ST", "ST"
-  ],
+  FORMATION_INFO[name] = parts.join('\n');
+}
 
-  // 4-at-the-back, 4-1-x-x and 4-2-x-x shapes
-  "4-1-2-1-2": [          // 41212 (wide)
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "CDM",
-    "LM", "RM",
-    "CAM",
-    "ST", "ST"
-  ],
-
-  "4-1-2-1-2 (2)": [      // 41212(2) (narrow)
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "CDM",
-    "CM", "CM",
-    "CAM",
-    "ST", "ST"
-  ],
-
-  "4-1-3-2": [            // 4132
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "CDM",
-    "LM", "CM", "RM",
-    "ST", "ST"
-  ],
-
-  "4-1-4-1": [            // 4141
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "CDM",
-    "LM", "CM", "CM", "RM",
-    "ST"
-  ],
-
-  "4-2-1-3": [            // 4213
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "CDM", "CDM",
-    "CAM",
-    "LW", "ST", "RW"
-  ],
-
-  "4-2-2-2": [            // 4222
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "CDM", "CDM",
-    "CAM", "CAM",
-    "ST", "ST"
-  ],
-
-  "4-2-3-1": [            // 4231 (narrow, 3 CAMs)
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "CDM", "CDM",
-    "CAM", "CAM", "CAM",
-    "ST"
-  ],
-
-  "4-2-3-1 (2)": [        // 4231(2) (wide: LM/RM + CAM)
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "CDM", "CDM",
-    "LM", "CAM", "RM",
-    "ST"
-  ],
-
-  "4-2-4": [              // 424
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "CM", "CM",
-    "LW", "ST", "ST", "RW"
-  ],
-
-  // 4-3-x-x
-  "4-3-1-2": [            // 4312
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "CM", "CM", "CM",
-    "CAM",
-    "ST", "ST"
-  ],
-
-  "4-3-2-1": [            // 4321 (Christmas tree)
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "CM", "CM", "CM",
-    "CF", "CF",
-    "ST"
-  ],
-
-  "4-3-3": [              // 433 base – classic FUT layout
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "CM", "CM", "CM",
-    "LW", "ST", "RW"
-  ],
-
-  "4-3-3 (2)": [          // 433(2) – 1 CDM + 2 CM
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "CDM", "CM", "CM",
-    "LW", "ST", "RW"
-  ],
-
-  "4-3-3 (3)": [          // 433(3) – more defensive, double pivot
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "CDM", "CDM", "CM",
-    "LW", "ST", "RW"
-  ],
-
-  "4-3-3 (4)": [          // 433(4) – more attacking, 2 CAM
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "CM", "CAM", "CAM",
-    "LW", "ST", "RW"
-  ],
-
-  // 4-4-x-x & 4-5-x
-  "4-4-1-1 (2)": [        // 4411(2)
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "LM", "CM", "CM", "RM",
-    "CF",
-    "ST"
-  ],
-
-  "4-4-2": [              // 442
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "LM", "CM", "CM", "RM",
-    "ST", "ST"
-  ],
-
-  "4-4-2 (2)": [          // 442(2) – holding, double pivot
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "LM", "CDM", "CDM", "RM",
-    "ST", "ST"
-  ],
-
-  "4-5-1": [              // 451 – more attacking 4-5-1
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "LM", "CM", "CAM", "CM", "RM",
-    "ST"
-  ],
-
-  "4-5-1 (2)": [          // 451(2) – more defensive, double pivot
-    "GK",
-    "LB", "CB", "CB", "RB",
-    "LM", "CDM", "CAM", "CDM", "RM",
-    "ST"
-  ],
-
-  // 5-at-the-back
-  "5-2-1-2": [            // 5212
-    "GK",
-    "LWB", "CB", "CB", "CB", "RWB",
-    "CM", "CM",
-    "CAM",
-    "ST", "ST"
-  ],
-
-  "5-2-3": [              // 523
-    "GK",
-    "LWB", "CB", "CB", "CB", "RWB",
-    "CM", "CM",
-    "LW", "ST", "RW"
-  ],
-
-  "5-3-2": [              // 532
-    "GK",
-    "LWB", "CB", "CB", "CB", "RWB",
-    "CM", "CM", "CM",
-    "ST", "ST"
-  ],
-
-  "5-4-1": [              // 541
-    "GK",
-    "LWB", "CB", "CB", "CB", "RWB",
-    "LM", "CM", "CM", "RM",
-    "ST"
-  ]
-};
-
-const FORMATION_INFO = {
-  // 3-at-the-back
-  "3-1-4-2": `Strengths: Very strong through the middle with a back three plus a screening CDM, good for patient build-up and countering central overloads. Weaknesses: Can be exposed in the wide channels if LM/RM don’t track back. Best used when you want two strikers up top and control of the middle third. Key players: Mobile, aggressive CBs; a disciplined CDM who reads play well; high-stamina LM/RM; one link-up ST and one runner in behind.`,
-  "3-4-1-2": `Strengths: Central overload with a CAM behind two strikers, ideal for through balls and quick combinations. Weaknesses: Flanks can be vulnerable vs teams with very attacking fullbacks or wide wingers. Best used when you have a playmaking CAM and two complementary forwards. Key players: Ball-playing CBs, box-to-box CMs, creative CAM, one target ST and one pacey ST.`,
-  "3-4-2-1": `Strengths: Very strong between the lines with two CAMs/CFs behind a lone ST, great for tiki-taka and short passing. Weaknesses: Only one true striker and no classic wingers, so crosses are less threatening. Best used when you have two creative attackers who like to drift and combine. Key players: Composed CBs, hardworking CM pair, two technical CAMs, a complete ST who can hold up and finish.`,
-  "3-4-3": `Strengths: Super aggressive front three with wide forwards, great for pressing and fast transitions. Weaknesses: Midfield can be outnumbered and wingbacks must work hard both ways. Best used when you want to swarm the opponent’s back line and play direct. Key players: Fast LW/RW who can score, physical CBs, energetic CMs, clinical ST.`,
-  "3-5-2": `Strengths: Massive control in midfield with five across and two STs, good for slow build-up or long spells of possession. Weaknesses: Width depends heavily on LM/RM; if they don’t track back, flanks are exposed. Best used when you have strong central players and want to dominate the middle. Key players: Stamina monsters at LM/RM, two-way CDMs, creative CAM, a target ST plus a runner.`,
-
-  // 4-at-the-back, 4-1-x-x and 4-2-x-x shapes
-  "4-1-2-1-2": `Strengths: Narrow diamond that overloads the center and supports two STs, good for quick one-twos and through balls. Weaknesses: Very little natural width, so you can struggle vs compact low blocks. Best used when your fullbacks like to bomb forward and your CAM is a star. Key players: Overlapping LB/RB, strong CDM, high-vision CAM, two strikers with good off-the-ball movement.`,
-  "4-1-2-1-2 (2)": `Strengths: Even more compact diamond with CM/CM, great for short passing and central dominance. Weaknesses: Predictable if opponents clog the middle; relies on fullbacks for width. Best used with technically sound CMs and a creative CAM. Key players: Press-resistant CMs, smart CDM, playmaking CAM, versatile STs who can drop in.`,
-  "4-1-3-2": `Strengths: Solid single pivot CDM behind an attacking three and two STs, good for pressing high and playing direct. Weaknesses: Only one holding mid, so counters through the middle can be dangerous. Best used when you trust your CDM and want numbers in attack. Key players: Strong CDM, balanced LM/RM, CAM/CM with vision, two aggressive strikers.`,
-  "4-1-4-1": `Strengths: Very stable defensively with a CDM shielding the back four and a compact midfield line of four. Weaknesses: Lone ST can get isolated if wide players don’t join quickly. Best used when protecting a lead or playing vs stronger teams. Key players: Disciplined CDM, high-work-rate wide mids, box-to-box CMs, a complete ST who can hold up play.`,
-  "4-2-1-3": `Strengths: Double pivot protects the back four while CAM and front three attack, great balance between defense and offense. Weaknesses: CAM can be crowded out if team doesn’t create wide overloads. Best used with quick wingers and a strong central CAM. Key players: Two intelligent CDMs, creative CAM, pacey LW/RW, clinical ST.`,
-  "4-2-2-2": `Strengths: Very strong in central channels with two CAMs and two STs, good for intricate passing and central overloads. Weaknesses: Flanks can be open; you rely heavily on fullbacks for width. Best used when your fullbacks are very attacking and your CAMs are creative. Key players: Two disciplined CDMs, technical CAMs, overlapping LB/RB, two deadly finishers.`,
-  "4-2-3-1": `Strengths: One of the most balanced shapes; double pivot for stability plus three attackers behind a ST. Great for possession or counter-attacks. Weaknesses: Wide CAMs must track back or fullbacks get overloaded. Best used when you have a standout CAM and versatile wide attackers. Key players: All-round CDM/CM pair, playmaking central CAM, agile wide CAMs, complete ST.`,
-  "4-2-3-1 (2)": `Strengths: LM/RM + CAM behind a ST gives natural width and a central creator, good for crosses and cutbacks. Weaknesses: If LM/RM don’t work defensively, you can be stretched wide. Best used when you like to attack through the wings. Key players: Stamina-heavy wide mids, solid CDM duo, creative CAM, strong aerial ST.`,
-  "4-2-4": `Strengths: Extremely aggressive with four forwards, ideal for all-out attack and late-game comebacks. Weaknesses: Midfield is thin; you’ll be vulnerable to counters and outnumbered centrally. Best used when chasing a goal or vs weaker opponents. Key players: Two high-energy CMs, fast LW/RW, poacher ST plus target ST.`,
-
-  // 4-3-x-x
-  "4-3-1-2": `Strengths: Three CMs plus a CAM behind two STs; strong centrally with a natural link between mid and attack. Weaknesses: No natural width, so fullbacks must push high. Best used when your midfielders are strong passers and can control tempo. Key players: One holding CM, two box-to-box CMs, creative CAM, two complementary strikers.`,
-  "4-3-2-1": `Strengths: “Christmas tree” structure; two CFs behind a lone ST for heavy central overloads and intricate build-up. Weaknesses: Almost no width; can feel cramped versus low blocks. Best used when your attackers prefer to play between lines rather than hugging the touchline. Key players: Three balanced CMs, two creative CFs, a complete ST.`,
-  "4-3-3": `Strengths: Classic all-round shape with three CMs and a front three; great for pressing, possession, and flexible attacking patterns. Weaknesses: Middle CM can get overworked if wide forwards don’t defend. Best used when you have strong wingers and a solid midfield triangle. Key players: One holding CM, two shuttling CMs, pacey LW/RW, reliable ST.`,
-  "4-3-3 (2)": `Strengths: CDM + two CMs give extra protection while keeping a dangerous front three; ideal for balanced play. Weaknesses: If CMs are too defensive, you can lack creativity. Best used when one player excels as a pure CDM. Key players: Destroyer-type CDM, two box-to-box CMs, fast wingers, clinical ST.`,
-  "4-3-3 (3)": `Strengths: Double pivot plus one CM makes it very solid defensively, great for sitting deeper and countering. Weaknesses: Can feel conservative; fewer runners from midfield into the box. Best used vs stronger teams or fast counters. Key players: Two disciplined CDMs, a linking CM, pacey LW/RW, lone ST who can exploit space.`,
-  "4-3-3 (4)": `Strengths: CM + two CAMs behind a front three makes this very attacking and creative. Weaknesses: Defensive cover in midfield is lighter; can be risky if fullbacks push too high. Best used when you want to dominate possession in the final third. Key players: One hard-working CM, two creative CAM types, flair LW/RW, top-tier finisher up front.`,
-
-  // 4-4-x-x & 4-5-x
-  "4-4-1-1 (2)": `Strengths: Solid 4-4-2 base with a CF dropping off the ST for link-up play, good balance between defense and attack. Weaknesses: Wide mids must work hard or your fullbacks get exposed. Best used when you have a second striker good at creating and scoring. Key players: Two balanced CMs, high-work-rate LM/RM, creative CF, focal-point ST.`,
-  "4-4-2": `Strengths: Very simple, very balanced: two banks of four and two STs, great for counters and crosses. Weaknesses: Outnumbered by 3 or 5-man midfields; can struggle to progress the ball centrally. Best used with strong wide players and two strikers who link well. Key players: Disciplined CBs, LM/RM with pace and crossing, one target ST and one runner.`,
-  "4-4-2 (2)": `Strengths: Double CDM gives excellent central protection while keeping two STs up top. Weaknesses: Less creativity from midfield; you’ll rely on flanks and long balls. Best used to protect a lead but still have counter threat. Key players: Two strong CDMs, robust CBs, hard-working LM/RM, quick strikers.`,
-  "4-5-1": `Strengths: Very strong midfield presence with a CAM; good for controlling possession and firing late runs into the box. Weaknesses: Lone ST can be isolated if wide players stay too deep. Best used when your CAM is a main attacking outlet. Key players: Two solid CMs, creative CAM, LM/RM who can cut inside, complete ST.`,
-  "4-5-1 (2)": `Strengths: Double pivot CDMs + CAM makes it defensively secure while still having a creator. Weaknesses: Can feel passive if LM/RM and CAM don’t push high. Best used when you want to sit deeper but still threaten on counters through the middle. Key players: Two defensive-minded CDMs, high-energy LM/RM, clever CAM, pacey ST.`,
-
-  // 5-at-the-back
-  "5-2-1-2": `Strengths: Three CBs plus wingbacks and a CAM behind two STs; very secure at the back but still dangerous centrally. Weaknesses: Can be pinned deep if wingbacks are slow or too defensive. Best used vs strong opponents or when playing on the counter. Key players: Quick LWB/RWB, aerially dominant CBs, two-way CMs, creative CAM, two strikers who can exploit space.`,
-  "5-2-3": `Strengths: Wingbacks plus a front three make this great for wide counters; very solid defensively. Weaknesses: Only two CMs, so you can be overrun centrally. Best used when your wingers and wingbacks are very fast. Key players: Pace merchant LWB/RWB, mobile CB trio, hard-working CMs, direct LW/RW, fast ST.`,
-  "5-3-2": `Strengths: Extremely solid with three CBs and three CMs plus two STs; tough to break down while still having a front two. Weaknesses: Width relies fully on wingbacks and can be slow to transition if CMs are too defensive. Best used when protecting leads or playing pragmatic football. Key players: Strong CBs, tireless wingbacks, balanced midfield three, two strikers who can hold up and finish.`,
-  "5-4-1": `Strengths: Very deep and compact, ideal for parking the bus or absorbing pressure. Weaknesses: Limited attacking options with one ST and deep wide mids. Best used when you’re outmatched and playing for counters or set pieces. Key players: Dominant CB trio, disciplined wingbacks, hard-working LM/RM, a lone ST who can win duels and hold the ball up.`
-};
-
-const DEFAULT_FORMATION = "4-3-3";
+// Default formation must exist in FORMATION_POSITIONS
+const DEFAULT_FORMATION = "4-3-3 FLAT";
 
 // Default club slots per guild; names are editable from the panel
 // Max clubs = 5
@@ -366,7 +790,9 @@ function cloneDefaultClubs() {
 
 function createEmptyBoardForFormation(formationName) {
   const positions =
-    FORMATION_POSITIONS[formationName] || FORMATION_POSITIONS[DEFAULT_FORMATION];
+    FORMATION_POSITIONS[formationName] ||
+    FORMATION_POSITIONS[DEFAULT_FORMATION];
+
   return {
     formation: formationName,
     slots: positions.map((label) => ({
@@ -504,8 +930,8 @@ function buildEmbedForClub(guildId, clubKey) {
     .setTitle(`Club Spots – ${clubBoard.formation}`)
     .setDescription(
       `**Club:** ${club.name}\n` +
-      (vcLine ? `${vcLine}\n` : '\n') +
-      lines.join('\n')
+        (vcLine ? `${vcLine}\n` : '\n') +
+        lines.join('\n')
     )
     .setFooter({
       text:
@@ -1116,17 +1542,17 @@ async function setClubFormation(interaction, guildId, clubKey, formationName) {
 
   // Try to keep everyone in the closest possible role
   for (const occ of occupants) {
-    let idx = findExactIndex(occ.label);          // 1) Same label (CB -> CB, ST -> ST)
+    let idx = findExactIndex(occ.label); // 1) Same label (CB -> CB, ST -> ST)
     if (idx === -1 && occ.group) {
-      idx = findGroupIndex(occ.group);            // 2) Same group (LB -> FB, CAM -> CAM/CF)
+      idx = findGroupIndex(occ.group); // 2) Same group (LB -> FB, CAM -> CAM/CF)
     }
     if (idx === -1) {
-      idx = findAnyIndex();                       // 3) Fall back to any open slot
+      idx = findAnyIndex(); // 3) Fall back to any open slot
     }
 
     if (idx !== -1) {
       newSlots[idx].open = false;
-      newSlots[idx].takenBy = occ.playerId;       // Works for real players + "__NOT_IN_VC__"
+      newSlots[idx].takenBy = occ.playerId; // Works for real players + "__NOT_IN_VC__"
       usedIndices.add(idx);
     }
   }
