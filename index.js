@@ -27,8 +27,49 @@ const client = new Client({
 });
 
 /**
- * Dynamic formations: definitions with metadata. We derive
- * position lists & notes from this.
+ * Permission helpers
+ */
+
+function hasManageGuildPermission(member) {
+  if (!member || member.permissions == null) return false;
+
+  try {
+    // If it's already a PermissionsBitField-like object:
+    if (typeof member.permissions.has === 'function') {
+      return member.permissions.has(PermissionsBitField.Flags.ManageGuild);
+    }
+
+    // If it's a raw bitfield / bigint / number:
+    const pb = new PermissionsBitField(member.permissions);
+    return pb.has(PermissionsBitField.Flags.ManageGuild);
+  } catch {
+    return false;
+  }
+}
+
+// Admins or roles with "captain", "manager", "owner", or "media" in the name
+// These are allowed to assign/move/remove players, reset spots, set VC, etc.
+function isManager(member) {
+  if (!member) return false;
+
+  if (hasManageGuildPermission(member)) return true;
+
+  const managerKeywords = ['captain', 'manager', 'owner', 'media'];
+
+  const roleCollection = member.roles?.cache
+    ? [...member.roles.cache.values()]
+    : Array.isArray(member.roles)
+    ? member.roles
+    : [];
+
+  return roleCollection.some((role) => {
+    const name = (role.name || '').toLowerCase();
+    return managerKeywords.some((kw) => name.includes(kw));
+  });
+}
+
+/**
+ * Dynamic formations: definitions with metadata.
  */
 const FORMATION_DEFINITIONS = [
   {
@@ -721,23 +762,6 @@ for (const def of FORMATION_DEFINITIONS) {
   FORMATION_INFO[name] = parts.join('\n');
 }
 
-// Precomputed formation groupings for the Formation menu (efficiency)
-const FORMATION_GROUPS = {
-  back3: [],
-  back4: [],
-  back5: [],
-  twoStrikers: []
-};
-
-for (const [name, positions] of Object.entries(FORMATION_POSITIONS)) {
-  if (name.startsWith('3-')) FORMATION_GROUPS.back3.push(name);
-  if (name.startsWith('4-')) FORMATION_GROUPS.back4.push(name);
-  if (name.startsWith('5-')) FORMATION_GROUPS.back5.push(name);
-
-  const stCount = (positions || []).filter((p) => p === 'ST').length;
-  if (stCount === 2) FORMATION_GROUPS.twoStrikers.push(name);
-}
-
 // Default formation must exist in FORMATION_POSITIONS
 const DEFAULT_FORMATION = "4-3-3 FLAT";
 
@@ -770,7 +794,6 @@ const COMMANDS = [
 
 // ---------- HELPERS ----------
 
-// Make formation notes multi-line and slightly formatted
 function formatFormationInfo(info) {
   if (!info) return '';
 
@@ -782,7 +805,6 @@ function formatFormationInfo(info) {
   return txt;
 }
 
-// Group positions into broad roles so we can remap logically on formation change
 function getPositionGroup(label) {
   const upper = (label || '').toUpperCase();
 
@@ -815,7 +837,8 @@ function createEmptyBoardForFormation(formationName) {
     slots: positions.map((label) => ({
       label,
       open: true,
-      takenBy: null
+      takenBy: null,
+      waiters: [] // users to DM when this spot opens
     }))
   };
 }
@@ -862,7 +885,6 @@ function getGuildState(guildId) {
     };
     guildStates.set(guildId, state);
   } else {
-    // Ensure clubVcLinks exists and has keys for all clubs (future-proof)
     if (!state.clubVcLinks) {
       state.clubVcLinks = {};
     }
@@ -879,48 +901,6 @@ function getClubByKey(clubs, key) {
   return clubs.find((c) => c.key === key);
 }
 
-// Robust permission + role check to avoid "permissions.has is not a function" crashes
-function hasManageGuildPermission(member) {
-  if (!member || !member.permissions) return false;
-  const perms = member.permissions;
-  try {
-    if (typeof perms.has === 'function') {
-      return perms.has(PermissionsBitField.Flags.ManageGuild);
-    }
-    const pb = new PermissionsBitField(perms);
-    return pb.has(PermissionsBitField.Flags.ManageGuild);
-  } catch {
-    return false;
-  }
-}
-
-// Admins or roles with "captain", "manager", "owner", or "media" in the name
-// These are allowed to assign/move/remove players, reset spots, set VC, etc.
-function isManager(member) {
-  if (!member) return false;
-
-  if (hasManageGuildPermission(member)) return true;
-
-  const managerKeywords = ['captain', 'manager', 'owner', 'media'];
-
-  if (member.roles?.cache) {
-    return member.roles.cache.some((role) => {
-      const name = (role.name || '').toLowerCase();
-      return managerKeywords.some((kw) => name.includes(kw));
-    });
-  }
-
-  if (Array.isArray(member.roles)) {
-    return member.roles.some((role) => {
-      const name = (role.name || '').toLowerCase();
-      return managerKeywords.some((kw) => name.includes(kw));
-    });
-  }
-
-  return false;
-}
-
-// Find if a message belongs to a VC-linked panel
 function getVcPanelByMessage(state, messageId) {
   if (!state.vcPanels) return null;
   for (const [vcId, panel] of Object.entries(state.vcPanels)) {
@@ -931,7 +911,7 @@ function getVcPanelByMessage(state, messageId) {
   return null;
 }
 
-// ---------- UI BUILDERS (per guild) ----------
+// ---------- UI BUILDERS ----------
 
 function buildEmbedForClub(guildId, clubKey) {
   const state = getGuildState(guildId);
@@ -944,7 +924,6 @@ function buildEmbedForClub(guildId, clubKey) {
   const clubBoard = boardState[clubKey];
   if (!clubBoard) throw new Error(`No board state for club key: ${clubKey}`);
 
-  // Show from top of pitch (strikers) down to GK
   const lines = [];
   for (let i = clubBoard.slots.length - 1; i >= 0; i--) {
     const slot = clubBoard.slots[i];
@@ -978,7 +957,7 @@ function buildEmbedForClub(guildId, clubKey) {
     )
     .setFooter({
       text:
-        'Players: click a spot to claim. Managers can assign/move/remove players, reset spots, and link voice channels.'
+        'Players: click a spot to claim. Managers can use Player Tools / Club Tools to manage spots and clubs.'
     });
 
   const rawInfo = FORMATION_INFO[clubBoard.formation];
@@ -996,8 +975,6 @@ function buildEmbedForClub(guildId, clubKey) {
   return embed;
 }
 
-// Buttons for a specific club, based on its current formation slots
-// Also ordered from top of pitch (attack) down to GK
 function buildButtons(guildId, clubKey) {
   const state = getGuildState(guildId);
   const { boardState } = state;
@@ -1010,7 +987,6 @@ function buildButtons(guildId, clubKey) {
     const slot = clubBoard.slots[i];
 
     const button = new ButtonBuilder()
-      // customId: pos_<clubKey>_<index>
       .setCustomId(`pos_${clubKey}_${i}`)
       .setLabel(slot.label)
       .setStyle(slot.open ? ButtonStyle.Success : ButtonStyle.Danger);
@@ -1030,7 +1006,6 @@ function buildButtons(guildId, clubKey) {
   return rows;
 }
 
-// Club select used on the admin/global panels
 function buildClubSelect(guildId, currentClubKey) {
   const state = getGuildState(guildId);
   const { clubs } = state;
@@ -1050,7 +1025,6 @@ function buildClubSelect(guildId, currentClubKey) {
   return new ActionRowBuilder().addComponents(select);
 }
 
-// Viewer dropdown for the read-only /spots board
 function buildViewerClubSelect(guildId, selectedKey) {
   const state = getGuildState(guildId);
   const { clubs } = state;
@@ -1070,10 +1044,6 @@ function buildViewerClubSelect(guildId, selectedKey) {
   return new ActionRowBuilder().addComponents(select);
 }
 
-// Admin/VC panel components for a specific club
-// Row 1: club select
-// Row 2: Formation + Commands
-// Rows 3-5: dynamic position buttons from formation
 function buildAdminComponents(guildId, clubKey) {
   const clubRow = buildClubSelect(guildId, clubKey);
 
@@ -1084,23 +1054,25 @@ function buildAdminComponents(guildId, clubKey) {
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(`player_tools_${clubKey}`)
-      .setLabel('Commands')
+      .setLabel('Player Tools')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`club_tools_${clubKey}`)
+      .setLabel('Club Tools')
       .setStyle(ButtonStyle.Secondary)
   );
 
   const buttonRows = buildButtons(guildId, clubKey);
 
-  // IMPORTANT: Max 5 rows total per message
-  // clubRow (1) + controlRow (1) + up to 3 position rows = 5
   return [clubRow, controlRow, ...buttonRows.slice(0, 3)];
 }
 
-// Refresh all panels (global + any VC panels) that show a given club
+// ---------- PANEL REFRESH & STATE OPS ----------
+
 async function refreshClubPanels(guildId, clubKey) {
   const state = getGuildState(guildId);
   if (!state) return;
 
-  // Update global admin panel if it is currently showing this club
   if (
     state.adminPanelChannelId &&
     state.adminPanelMessageId &&
@@ -1119,12 +1091,7 @@ async function refreshClubPanels(guildId, clubKey) {
         });
       }
     } catch (err) {
-      if (
-        err.code === 10008 || // Unknown Message
-        err.code === 10003 || // Unknown Channel
-        err.code === 50001 || // Missing Access
-        err.code === 50013    // Missing Permissions
-      ) {
+      if (err.code === 10008 || err.code === 50001) {
         state.adminPanelChannelId = null;
         state.adminPanelMessageId = null;
       } else {
@@ -1133,7 +1100,6 @@ async function refreshClubPanels(guildId, clubKey) {
     }
   }
 
-  // Update VC panels bound to this club
   if (state.vcPanels) {
     for (const [vcId, panel] of Object.entries(state.vcPanels)) {
       if (!panel || panel.clubKey !== clubKey) continue;
@@ -1151,12 +1117,7 @@ async function refreshClubPanels(guildId, clubKey) {
           components: buildAdminComponents(guildId, clubKey)
         });
       } catch (err) {
-        if (
-          err.code === 10008 || // Unknown Message
-          err.code === 10003 || // Unknown Channel
-          err.code === 50001 || // Missing Access
-          err.code === 50013    // Missing Permissions
-        ) {
+        if (err.code === 10008 || err.code === 50001) {
           delete state.vcPanels[vcId];
         } else {
           console.error(
@@ -1169,60 +1130,54 @@ async function refreshClubPanels(guildId, clubKey) {
   }
 }
 
-// Helper: reset all slots for a club (keep formation)
 function resetClubSpots(boardState, clubKey) {
   const clubBoard = boardState[clubKey];
   if (!clubBoard) return;
   clubBoard.slots.forEach((slot) => {
     slot.open = true;
     slot.takenBy = null;
+    slot.waiters = [];
   });
 }
 
-// ---------- READY & COMMAND REG ----------
+async function notifySlotWaiters(guildId, clubKey, slotIndex) {
+  const state = getGuildState(guildId);
+  if (!state) return;
 
-client.once(Events.ClientReady, async (c) => {
-  console.log(`✅ Logged in as ${c.user.tag}`);
-  console.log(`✅ App ID: ${c.application.id}`);
+  const guild = await client.guilds.fetch(guildId).catch(() => null);
+  const clubBoard = state.boardState[clubKey];
+  if (!clubBoard) return;
 
-  try {
-    // Global commands (for all servers)
-    await c.application.commands.set(COMMANDS);
-    console.log('✅ Global commands registered for all servers');
+  const slot = clubBoard.slots[slotIndex];
+  if (!slot || !Array.isArray(slot.waiters) || slot.waiters.length === 0) return;
 
-    // Also explicitly register per existing guild (helps them appear faster)
-    for (const guild of c.guilds.cache.values()) {
-      try {
-        await c.application.commands.set(COMMANDS, guild.id);
-        console.log(`✅ Commands registered in guild ${guild.name} (${guild.id})`);
-      } catch (err) {
-        console.error('⚠️ Failed to register commands in guild', guild.id, err);
+  const club = getClubByKey(state.clubs, clubKey);
+  const waiters = [...slot.waiters];
+  slot.waiters = [];
+
+  for (const userId of waiters) {
+    try {
+      const user = await client.users.fetch(userId);
+      await user.send(
+        `Good news! In **${guild ? guild.name : 'this server'}**, club **${
+          club ? club.name : clubKey
+        }**, the **${slot.label}** spot just opened up. Go claim it in the spots panel.`
+      );
+    } catch (err) {
+      if (err.code !== 50007) {
+        console.error(`⚠️ Failed to DM user ${userId} about open spot:`, err);
       }
     }
-  } catch (err) {
-    console.error('❌ Failed to register commands:', err);
   }
-});
-
-// When the bot joins a new server later, register there too
-client.on(Events.GuildCreate, async (guild) => {
-  try {
-    if (!client.application?.commands) return;
-    await client.application.commands.set(COMMANDS, guild.id);
-    console.log(`✅ Commands registered in newly joined guild ${guild.name} (${guild.id})`);
-  } catch (err) {
-    console.error('⚠️ Failed to register commands in new guild', guild.id, err);
-  }
-});
+}
 
 // ---------- INTERACTION HELPERS ----------
 
-// Helper: start "Assign from VC" flow (manager-only)
 async function startAssignFromVc(interaction, state, clubKey) {
   if (!isManager(interaction.member)) {
     return interaction.reply({
       content:
-        'Only captains, managers, owners, media, or admins can assign or move players.',
+        'Only captains, managers, owners, media, or admins can use the Player Tools menu.',
       ephemeral: true
     });
   }
@@ -1236,7 +1191,6 @@ async function startAssignFromVc(interaction, state, clubKey) {
     });
   }
 
-  // Enforce correct VC for VC panels
   const vcPanelInfo = getVcPanelByMessage(state, interaction.message.id);
   let voiceChannel = null;
 
@@ -1260,7 +1214,6 @@ async function startAssignFromVc(interaction, state, clubKey) {
       });
     }
   } else {
-    // Global panel: allow any VC, but must be in one
     voiceChannel = interaction.member?.voice?.channel;
     if (!voiceChannel) {
       return interaction.reply({
@@ -1279,7 +1232,6 @@ async function startAssignFromVc(interaction, state, clubKey) {
     });
   }
 
-  // Up to 24 real players + 1 placeholder = 25 options (Discord limit)
   const memberOptions = members.map((m) => ({
     label: m.displayName || m.user.username,
     value: m.id
@@ -1306,12 +1258,11 @@ async function startAssignFromVc(interaction, state, clubKey) {
   });
 }
 
-// Helper: start "Manage existing players" flow (manager-only)
 async function startManagePlayers(interaction, state, clubKey) {
   if (!isManager(interaction.member)) {
     return interaction.reply({
       content:
-        'Only captains, managers, owners, media, or admins can remove or move players.',
+        'Only captains, managers, owners, media, or admins can use the Player Tools menu.',
       ephemeral: true
     });
   }
@@ -1325,7 +1276,6 @@ async function startManagePlayers(interaction, state, clubKey) {
     });
   }
 
-  // Collect unique players who currently have slots
   const seen = new Set();
   const options = [];
 
@@ -1333,7 +1283,6 @@ async function startManagePlayers(interaction, state, clubKey) {
     if (slot.open || !slot.takenBy) continue;
     const userId = slot.takenBy;
 
-    // Handle placeholder specially
     if (userId === '__NOT_IN_VC__') {
       if (seen.has(userId)) continue;
       seen.add(userId);
@@ -1353,7 +1302,7 @@ async function startManagePlayers(interaction, state, clubKey) {
       const member = await interaction.guild.members.fetch(userId);
       label = member.displayName || member.user.username || userId;
     } catch {
-      // ignore fetch error, just keep userId
+      // ignore
     }
 
     options.push({
@@ -1385,12 +1334,11 @@ async function startManagePlayers(interaction, state, clubKey) {
   });
 }
 
-// Helper: start "Set VC for this club" flow (manager-only)
 async function startSetClubVc(interaction, state, clubKey) {
   if (!isManager(interaction.member)) {
     return interaction.reply({
       content:
-        'Only captains, managers, owners, media, or admins can set the voice channel.',
+        'Only captains, managers, owners, media, or admins can use the Player Tools menu.',
       ephemeral: true
     });
   }
@@ -1427,7 +1375,6 @@ async function startSetClubVc(interaction, state, clubKey) {
   const currentLinkedId = state.clubVcLinks?.[clubKey] || null;
   const options = [];
 
-  // Up to 24 channels + 1 "clear" option
   const sorted = [...voiceChannels.values()].sort((a, b) => {
     if (a.rawPosition !== b.rawPosition) {
       return a.rawPosition - b.rawPosition;
@@ -1463,12 +1410,11 @@ async function startSetClubVc(interaction, state, clubKey) {
   });
 }
 
-// Helper: reset all spots (manager-only)
 async function doResetSpots(interaction, state, guildId, clubKey) {
   if (!isManager(interaction.member)) {
     return interaction.reply({
       content:
-        'Only captains, managers, owners, media, or admins can reset spots.',
+        'Only captains, managers, owners, media, or admins can use the Player Tools menu.',
       ephemeral: true
     });
   }
@@ -1482,7 +1428,6 @@ async function doResetSpots(interaction, state, guildId, clubKey) {
   });
 }
 
-// Helper: set formation and try to keep players in logical spots (open to everyone)
 async function setClubFormation(interaction, guildId, clubKey, formationName) {
   const state = getGuildState(guildId);
   if (!state) {
@@ -1506,7 +1451,6 @@ async function setClubFormation(interaction, guildId, clubKey, formationName) {
     return;
   }
 
-  // Acknowledge this interaction so it doesn't expire
   if (!interaction.deferred && !interaction.replied) {
     try {
       await interaction.deferUpdate();
@@ -1518,7 +1462,6 @@ async function setClubFormation(interaction, guildId, clubKey, formationName) {
   const oldBoard = state.boardState[clubKey];
   const oldSlots = oldBoard?.slots || [];
 
-  // Collect all current occupants from the old board
   const occupants = [];
   for (const slot of oldSlots) {
     if (!slot || slot.open || !slot.takenBy) continue;
@@ -1529,27 +1472,25 @@ async function setClubFormation(interaction, guildId, clubKey, formationName) {
     });
   }
 
-  // Build new board with the new formation
   const newBoard = {
     formation: formationName,
     slots: positions.map((label) => ({
       label,
       open: true,
-      takenBy: null
+      takenBy: null,
+      waiters: []
     }))
   };
 
   const newSlots = newBoard.slots;
   const usedIndices = new Set();
 
-  // Priority for groups so we place GK/backs/mids/forwards in a sensible order
   const groupOrder = ['GK', 'CB', 'FB', 'CDM', 'CM', 'CAM', 'WM', 'WING', 'ST', 'OTHER'];
   const groupPriority = {};
   groupOrder.forEach((g, i) => {
     groupPriority[g] = i;
   });
 
-  // Place more "specialized" spots first (GK/CB/etc)
   occupants.sort((a, b) => {
     const pa = groupPriority[a.group] ?? 999;
     const pb = groupPriority[b.group] ?? 999;
@@ -1579,24 +1520,22 @@ async function setClubFormation(interaction, guildId, clubKey, formationName) {
     return -1;
   }
 
-  // Try to keep everyone in the closest possible role
   for (const occ of occupants) {
-    let idx = findExactIndex(occ.label); // 1) Same label (CB -> CB, ST -> ST)
+    let idx = findExactIndex(occ.label);
     if (idx === -1 && occ.group) {
-      idx = findGroupIndex(occ.group); // 2) Same group (LB -> FB, CAM -> CAM/CF)
+      idx = findGroupIndex(occ.group);
     }
     if (idx === -1) {
-      idx = findAnyIndex(); // 3) Fall back to any open slot
+      idx = findAnyIndex();
     }
 
     if (idx !== -1) {
       newSlots[idx].open = false;
-      newSlots[idx].takenBy = occ.playerId; // Works for real players + "__NOT_IN_VC__"
+      newSlots[idx].takenBy = occ.playerId;
       usedIndices.add(idx);
     }
   }
 
-  // Preserve VC link when changing formation
   const oldVcId = state.clubVcLinks?.[clubKey] || null;
 
   state.boardState[clubKey] = newBoard;
@@ -1609,7 +1548,6 @@ async function setClubFormation(interaction, guildId, clubKey, formationName) {
     console.error('⚠️ Error refreshing panels after formation change:', err);
   }
 
-  // Ephemeral confirmation; safe to ignore if interaction already expired
   try {
     await interaction.followUp({
       content: `Formation for this club is now **${formationName}**. Current players were moved into the closest matching spots.`,
@@ -1622,12 +1560,45 @@ async function setClubFormation(interaction, guildId, clubKey, formationName) {
   }
 }
 
+// ---------- READY & COMMAND REG ----------
+
+client.once(Events.ClientReady, async (c) => {
+  console.log(`✅ Logged in as ${c.user.tag}`);
+  console.log(`✅ App ID: ${c.application.id}`);
+
+  try {
+    await c.application.commands.set(COMMANDS);
+    console.log('✅ Global commands registered for all servers');
+
+    for (const guild of c.guilds.cache.values()) {
+      try {
+        await c.application.commands.set(COMMANDS, guild.id);
+        console.log(`✅ Commands registered in guild ${guild.name} (${guild.id})`);
+      } catch (err) {
+        console.error('⚠️ Failed to register commands in guild', guild.id, err);
+      }
+    }
+  } catch (err) {
+    console.error('❌ Failed to register commands:', err);
+  }
+});
+
+client.on(Events.GuildCreate, async (guild) => {
+  try {
+    if (!client.application?.commands) return;
+    await client.application.commands.set(COMMANDS, guild.id);
+    console.log(`✅ Commands registered in newly joined guild ${guild.name} (${guild.id})`);
+  } catch (err) {
+    console.error('⚠️ Failed to register commands in new guild', guild.id, err);
+  }
+});
+
 // ---------- MAIN INTERACTION HANDLER ----------
 
 client.on(Events.InteractionCreate, async (interaction) => {
   try {
     const guildId = interaction.guildId;
-    if (!guildId) return; // ignore DMs
+    if (!guildId) return;
 
     const state = getGuildState(guildId);
     if (!state) return;
@@ -1638,7 +1609,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.isChatInputCommand()) {
       const cmd = interaction.commandName;
 
-      // Global admin panel (anyone can make it)
       if (cmd === 'spotpanel') {
         await interaction.reply({
           embeds: [buildEmbedForClub(guildId, state.currentClubKey)],
@@ -1652,7 +1622,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
-      // Read-only viewer board
       if (cmd === 'spots') {
         let key = state.currentClubKey;
         const currentClub = getClubByKey(clubs, key);
@@ -1668,7 +1637,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // VC-linked live panel
       if (cmd === 'vcspots') {
         const voiceChannel = interaction.member?.voice?.channel;
         if (!voiceChannel) {
@@ -1709,126 +1677,28 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     // ----- Buttons -----
     if (interaction.isButton()) {
+      const guildIdBtn = interaction.guildId;
+      const stateBtn = getGuildState(guildIdBtn);
+      if (!stateBtn) return;
+
+      const { clubs: clubsBtn, boardState: boardStateBtn } = stateBtn;
       const id = interaction.customId;
 
-      // Rename club (opens modal) – still supported but no button currently points here
-      if (id.startsWith('rename_club_')) {
-        const clubKey = id.substring('rename_club_'.length);
-        const currentClub = getClubByKey(clubs, clubKey);
-        if (!currentClub) {
-          return interaction.reply({
-            content: 'Current club not found.',
-            ephemeral: true
-          });
-        }
-
-        const modal = new ModalBuilder()
-          .setCustomId(`rename_club_modal_${clubKey}`)
-          .setTitle('Rename Club')
-          .addComponents(
-            new ActionRowBuilder().addComponents(
-              new TextInputBuilder()
-                .setCustomId('club_name')
-                .setLabel('New club name')
-                .setStyle(TextInputStyle.Short)
-                .setRequired(true)
-                .setValue(currentClub.name)
-            )
-          );
-
-        await interaction.showModal(modal);
-        return;
-      }
-
-      // Add a new club slot (global, not tied to a specific club) – still here but no button wired by default
-      if (id === 'add_club') {
-        const disabledClub = clubs.find((c) => !c.enabled);
-        if (!disabledClub) {
-          return interaction.reply({
-            content: 'All available club slots are already in use (max 5).',
-            ephemeral: true
-          });
-        }
-
-        disabledClub.enabled = true;
-        boardState[disabledClub.key] = createEmptyBoardForFormation(
-          DEFAULT_FORMATION
-        );
-        if (!state.clubVcLinks) state.clubVcLinks = {};
-        state.clubVcLinks[disabledClub.key] = null;
-
-        state.currentClubKey = disabledClub.key;
-
-        return interaction.reply({
-          content: `Added a new club slot: **${disabledClub.name}**. Use code/config to rename & pick formation.`,
-          ephemeral: true
-        });
-      }
-
-      // Remove a club – still supported but no visible button
-      if (id.startsWith('remove_club_')) {
-        const clubKey = id.substring('remove_club_'.length);
-        const currentClub = getClubByKey(clubs, clubKey);
-        if (!currentClub || !currentClub.enabled) {
-          return interaction.reply({
-            content: 'This club cannot be removed.',
-            ephemeral: true
-          });
-        }
-
-        const enabledCount = clubs.filter((c) => c.enabled).length;
-        if (enabledCount <= 1) {
-          return interaction.reply({
-            content: 'You must keep at least one club enabled.',
-            ephemeral: true
-          });
-        }
-
-        const clubBoard = boardState[clubKey];
-        if (clubBoard && clubBoard.slots) {
-          const hasTaken = clubBoard.slots.some((slot) => !slot.open);
-          if (hasTaken) {
-            return interaction.reply({
-              content:
-                'This club still has taken spots. Free all spots first before removing it.',
-              ephemeral: true
-            });
-          }
-        }
-
-        currentClub.enabled = false;
-        resetClubSpots(boardState, clubKey);
-        if (state.clubVcLinks) {
-          state.clubVcLinks[clubKey] = null;
-        }
-
-        // If the removed club was the "current" one, move pointer
-        if (state.currentClubKey === clubKey) {
-          const firstEnabled = clubs.find((c) => c.enabled);
-          if (firstEnabled) state.currentClubKey = firstEnabled.key;
-        }
-
-        return interaction.reply({
-          content: `Removed club **${currentClub.name}**. Panels may need to be recreated to reflect this change.`,
-          ephemeral: true
-        });
-      }
-
-      // Player tools (manager-only, opens ephemeral menu)
+      // Player Tools menu (manager-only)
       if (id.startsWith('player_tools_')) {
         const clubKey = id.substring('player_tools_'.length);
 
         if (!isManager(interaction.member)) {
           return interaction.reply({
             content:
-              'Only captains, managers, owners, media, or admins can use player tools.',
+              'Only captains, managers, owners, media, or admins can use the Player Tools menu.',
             ephemeral: true
           });
         }
 
         const select = new StringSelectMenuBuilder()
           .setCustomId(`player_tools_select_${clubKey}`)
-          .setPlaceholder('Choose a tool')
+          .setPlaceholder('Choose a player tool')
           .addOptions(
             {
               label: 'Assign from your voice channel',
@@ -1849,19 +1719,66 @@ client.on(Events.InteractionCreate, async (interaction) => {
             {
               label: 'Refresh panel',
               value: 'refresh'
+            },
+            {
+              label: 'Help / command list',
+              value: 'help'
             }
           );
 
         const row = new ActionRowBuilder().addComponents(select);
 
         return interaction.reply({
-          content: 'What do you want to do?',
+          content: 'Player tools:',
           components: [row],
           ephemeral: true
         });
       }
 
-      // Formation menu button (now open to everyone)
+      // Club Tools menu (manager-only)
+      if (id.startsWith('club_tools_')) {
+        const clubKey = id.substring('club_tools_'.length);
+
+        if (!isManager(interaction.member)) {
+          return interaction.reply({
+            content:
+              'Only captains, managers, owners, media, or admins can use the Club Tools menu.',
+            ephemeral: true
+          });
+        }
+
+        const select = new StringSelectMenuBuilder()
+          .setCustomId(`club_tools_select_${clubKey}`)
+          .setPlaceholder('Choose a club tool')
+          .addOptions(
+            {
+              label: 'Rename this club',
+              value: 'rename_club'
+            },
+            {
+              label: 'Add a new club',
+              value: 'add_club'
+            },
+            {
+              label: 'Remove this club',
+              value: 'remove_club'
+            },
+            {
+              label: 'Refresh panel',
+              value: 'refresh'
+            }
+          );
+
+        const row = new ActionRowBuilder().addComponents(select);
+
+        return interaction.reply({
+          content: 'Club tools:',
+          components: [row],
+          ephemeral: true
+        });
+      }
+
+      // Formation menu button (open to everyone)
       if (id.startsWith('formation_menu_')) {
         const clubKey = id.substring('formation_menu_'.length);
 
@@ -1869,12 +1786,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
           boardState[clubKey] || createEmptyBoardForFormation(DEFAULT_FORMATION);
         const currentFormation = clubBoard.formation || DEFAULT_FORMATION;
 
-        const { back3, back4, back5, twoStrikers } = FORMATION_GROUPS;
+        const allNames = Object.keys(FORMATION_POSITIONS);
+
+        const threeBack = allNames.filter((name) => name.startsWith('3-'));
+        const fourBack = allNames.filter((name) => name.startsWith('4-'));
+        const fiveBack = allNames.filter((name) => name.startsWith('5-'));
+        const twoStrikers = allNames.filter((name) => {
+          const positions = FORMATION_POSITIONS[name] || [];
+          return positions.filter((p) => p === 'ST').length === 2;
+        });
 
         const groups = [
-          { id: '3back', label: '3-back formations', list: back3 },
-          { id: '4back', label: '4-back formations', list: back4 },
-          { id: '5back', label: '5-back formations', list: back5 },
+          { id: '3back', label: '3-back formations', list: threeBack },
+          { id: '4back', label: '4-back formations', list: fourBack },
+          { id: '5back', label: '5-back formations', list: fiveBack },
           { id: '2st', label: 'Two-striker formations', list: twoStrikers }
         ];
 
@@ -1905,22 +1830,72 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Player self-claim/free spot (must be in VC; and on VC panels, must be the right VC)
+      // Waitlist DM buttons
+      if (id === 'wait_slot_cancel') {
+        return interaction.update({
+          content: 'Okay, I won’t track that spot.',
+          components: []
+        });
+      }
+
+      if (id.startsWith('wait_slot_')) {
+        const parts = id.split('_');
+        const clubKey = parts[2];
+        const slotIndex = parseInt(parts[3], 10);
+        const userId = interaction.user.id;
+
+        const clubBoard = stateBtn.boardState[clubKey];
+        if (!clubBoard || !clubBoard.slots[slotIndex]) {
+          return interaction.update({
+            content: 'That spot no longer exists.',
+            components: []
+          });
+        }
+
+        const slot = clubBoard.slots[slotIndex];
+
+        if (slot.open) {
+          return interaction.update({
+            content:
+              'That spot just opened up while you were clicking. Check the panel and claim it!',
+            components: []
+          });
+        }
+
+        if (!Array.isArray(slot.waiters)) {
+          slot.waiters = [];
+        }
+
+        if (slot.waiters.includes(userId)) {
+          return interaction.update({
+            content:
+              'You’re already on the notification list for that spot. I’ll DM you when it opens.',
+            components: []
+          });
+        }
+
+        slot.waiters.push(userId);
+
+        return interaction.update({
+          content: `Got it. I’ll DM you when **${slot.label}** opens up.`,
+          components: []
+        });
+      }
+
+      // Player self-claim/free spot
       if (id.startsWith('pos_')) {
-        // customId: pos_<clubKey>_<index>
-        const parts = id.split('_'); // ['pos', clubKey, index]
+        const parts = id.split('_');
         const clubKey = parts[1];
         const index = parseInt(parts[2], 10);
 
-        const clubBoard = boardState[clubKey];
+        const clubBoard = boardStateBtn[clubKey];
         if (!clubBoard || !clubBoard.slots[index]) {
           return;
         }
 
         const slot = clubBoard.slots[index];
 
-        // Is this message a VC panel?
-        const vcPanelInfo = getVcPanelByMessage(state, interaction.message.id);
+        const vcPanelInfo = getVcPanelByMessage(stateBtn, interaction.message.id);
         if (vcPanelInfo) {
           const { vcId } = vcPanelInfo;
           if (interaction.member?.voice?.channelId !== vcId) {
@@ -1930,7 +1905,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 interaction.guild.channels.cache.get(vcId) ||
                 (await interaction.guild.channels.fetch(vcId));
             } catch {
-              // ignore; vcChannel remains null
+              // ignore
             }
 
             return interaction.reply({
@@ -1941,7 +1916,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
             });
           }
         } else {
-          // Not a VC panel: require being in some VC at least
           const inVoice = interaction.member?.voice?.channelId;
           if (!inVoice) {
             return interaction.reply({
@@ -1955,39 +1929,65 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const userId = interaction.user.id;
 
         if (slot.open) {
-          // Claim: clear any other slots this user holds in this club
-          clubBoard.slots.forEach((s) => {
+          for (let i = 0; i < clubBoard.slots.length; i++) {
+            const s = clubBoard.slots[i];
             if (s.takenBy === userId) {
               s.open = true;
               s.takenBy = null;
+              await notifySlotWaiters(guildIdBtn, clubKey, i);
             }
-          });
+          }
           slot.open = false;
           slot.takenBy = userId;
         } else {
           if (slot.takenBy === userId) {
             slot.open = true;
             slot.takenBy = null;
+            await notifySlotWaiters(guildIdBtn, clubKey, index);
           } else {
+            const notifyBtn = new ButtonBuilder()
+              .setCustomId(`wait_slot_${clubKey}_${index}`)
+              .setLabel('Notify me when this spot opens')
+              .setStyle(ButtonStyle.Primary);
+
+            const cancelBtn = new ButtonBuilder()
+              .setCustomId('wait_slot_cancel')
+              .setLabel('Cancel')
+              .setStyle(ButtonStyle.Secondary);
+
+            const row = new ActionRowBuilder().addComponents(
+              notifyBtn,
+              cancelBtn
+            );
+
             return interaction.reply({
               content:
-                'This spot is already taken by someone else. Ask a manager if you need to be moved.',
+                'That spot is already taken. I can DM you when it opens up if you like.',
+              components: [row],
               ephemeral: true
             });
           }
         }
 
         await interaction.deferUpdate();
-        await refreshClubPanels(guildId, clubKey);
+        await refreshClubPanels(guildIdBtn, clubKey);
         return;
       }
     }
 
-    // ----- Modals (rename club) -----
+    // ----- Modals -----
     if (interaction.isModalSubmit()) {
       const id = interaction.customId;
 
       if (id.startsWith('rename_club_modal_')) {
+        if (!isManager(interaction.member)) {
+          return interaction.reply({
+            content:
+              'Only captains, managers, owners, media, or admins can rename clubs.',
+            ephemeral: true
+          });
+        }
+
         const clubKey = id.substring('rename_club_modal_'.length);
 
         const newName = interaction.fields.getTextInputValue('club_name').trim();
@@ -1998,7 +1998,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        const currentClub = getClubByKey(state.clubs, clubKey);
+        const stateModal = getGuildState(interaction.guildId);
+        if (!stateModal) {
+          return interaction.reply({
+            content: 'Guild state not found.',
+            ephemeral: true
+          });
+        }
+
+        const currentClub = getClubByKey(stateModal.clubs, clubKey);
         if (!currentClub) {
           return interaction.reply({
             content: 'Current club not found.',
@@ -2008,7 +2016,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         currentClub.name = newName;
 
-        await refreshClubPanels(guildId, clubKey);
+        await refreshClubPanels(interaction.guildId, clubKey);
 
         return interaction.reply({
           content: `Club renamed to **${newName}**.`,
@@ -2017,14 +2025,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    // ----- Dropdowns (club select, viewer select, player tools, assignment selects, vcspots, formation select, manage players, set VC) -----
+    // ----- Dropdowns -----
     if (interaction.isStringSelectMenu()) {
       const id = interaction.customId;
+      const guildIdSel = interaction.guildId;
+      const stateSel = getGuildState(guildIdSel);
+      if (!stateSel) return;
 
-      // Public viewer club select (/spots board)
       if (id === 'viewer_club_select') {
         const selectedKey = interaction.values[0];
-        const club = getClubByKey(clubs, selectedKey);
+        const club = getClubByKey(stateSel.clubs, selectedKey);
         if (!club || !club.enabled) {
           return interaction.reply({
             content: 'Unknown or disabled club selected.',
@@ -2033,15 +2043,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
 
         return interaction.update({
-          embeds: [buildEmbedForClub(guildId, selectedKey)],
-          components: [buildViewerClubSelect(guildId, selectedKey)]
+          embeds: [buildEmbedForClub(guildIdSel, selectedKey)],
+          components: [buildViewerClubSelect(guildIdSel, selectedKey)]
         });
       }
 
-      // Change which club we're editing on a given panel
       if (id === 'club_select') {
         const selectedKey = interaction.values[0];
-        const club = getClubByKey(clubs, selectedKey);
+        const club = getClubByKey(stateSel.clubs, selectedKey);
         if (!club) {
           return interaction.reply({
             content: 'Unknown club selected.',
@@ -2049,53 +2058,196 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        state.currentClubKey = selectedKey;
+        stateSel.currentClubKey = selectedKey;
 
-        // If this message is a VC panel, update its mapping
-        const vcPanelInfo = getVcPanelByMessage(state, interaction.message.id);
+        const vcPanelInfo = getVcPanelByMessage(stateSel, interaction.message.id);
         if (vcPanelInfo) {
           vcPanelInfo.panel.clubKey = selectedKey;
         }
 
         return interaction.update({
-          embeds: [buildEmbedForClub(guildId, selectedKey)],
-          components: buildAdminComponents(guildId, selectedKey)
+          embeds: [buildEmbedForClub(guildIdSel, selectedKey)],
+          components: buildAdminComponents(guildIdSel, selectedKey)
         });
       }
 
-      // Player Tools selection (manager-only)
+      // Player Tools menu actions
       if (id.startsWith('player_tools_select_')) {
         const clubKey = id.substring('player_tools_select_'.length);
         const choice = interaction.values[0];
 
+        if (!isManager(interaction.member)) {
+          return interaction.reply({
+            content:
+              'Only captains, managers, owners, media, or admins can use the Player Tools menu.',
+            ephemeral: true
+          });
+        }
+
         if (choice === 'assign') {
-          return startAssignFromVc(interaction, state, clubKey);
+          return startAssignFromVc(interaction, stateSel, clubKey);
         }
         if (choice === 'manage') {
-          return startManagePlayers(interaction, state, clubKey);
+          return startManagePlayers(interaction, stateSel, clubKey);
         }
         if (choice === 'reset') {
-          return doResetSpots(interaction, state, guildId, clubKey);
+          return doResetSpots(interaction, stateSel, guildIdSel, clubKey);
         }
         if (choice === 'set_vc') {
-          return startSetClubVc(interaction, state, clubKey);
+          return startSetClubVc(interaction, stateSel, clubKey);
         }
         if (choice === 'refresh') {
-          await refreshClubPanels(guildId, clubKey);
+          await refreshClubPanels(guildIdSel, clubKey);
           return interaction.update({
             content: 'Panel refreshed.',
+            components: []
+          });
+        }
+        if (choice === 'help') {
+          return interaction.update({
+            content:
+              'Commands:\n' +
+              '• `/spotpanel` – create the global control panel\n' +
+              '• `/spots` – read-only viewer board\n' +
+              '• `/vcspots` – link a club to your current VC and show a live panel\n\n' +
+              'From the **Player Tools** menu you can assign players from VC, manage players, reset spots, set the linked VC, and refresh panels.\n' +
+              'From the **Club Tools** menu you can rename/add/remove clubs and refresh the panel.',
             components: []
           });
         }
         return;
       }
 
-      // Set VC: choose voice channel / clear
+      // Club Tools menu actions
+      if (id.startsWith('club_tools_select_')) {
+        const clubKey = id.substring('club_tools_select_'.length);
+        const choice = interaction.values[0];
+
+        if (!isManager(interaction.member)) {
+          return interaction.reply({
+            content:
+              'Only captains, managers, owners, media, or admins can use the Club Tools menu.',
+            ephemeral: true
+          });
+        }
+
+        if (choice === 'rename_club') {
+          const currentClub = getClubByKey(stateSel.clubs, clubKey);
+          if (!currentClub) {
+            return interaction.update({
+              content: 'Current club not found.',
+              components: []
+            });
+          }
+
+          const modal = new ModalBuilder()
+            .setCustomId(`rename_club_modal_${clubKey}`)
+            .setTitle('Rename Club')
+            .addComponents(
+              new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                  .setCustomId('club_name')
+                  .setLabel('New club name')
+                  .setStyle(TextInputStyle.Short)
+                  .setRequired(true)
+                  .setValue(currentClub.name)
+              )
+            );
+
+          await interaction.showModal(modal);
+          return;
+        }
+
+        if (choice === 'add_club') {
+          const disabledClub = stateSel.clubs.find((c) => !c.enabled);
+          if (!disabledClub) {
+            return interaction.update({
+              content: 'All available club slots are already in use (max 5).',
+              components: []
+            });
+          }
+
+          disabledClub.enabled = true;
+          stateSel.boardState[disabledClub.key] =
+            createEmptyBoardForFormation(DEFAULT_FORMATION);
+          if (!stateSel.clubVcLinks) stateSel.clubVcLinks = {};
+          stateSel.clubVcLinks[disabledClub.key] = null;
+
+          stateSel.currentClubKey = disabledClub.key;
+
+          await refreshClubPanels(guildIdSel, disabledClub.key);
+
+          return interaction.update({
+            content: `Added a new club slot: **${disabledClub.name}**. Use the **Formation** and **Club Tools** buttons to configure it.`,
+            components: []
+          });
+        }
+
+        if (choice === 'remove_club') {
+          const currentClub = getClubByKey(stateSel.clubs, clubKey);
+          if (!currentClub || !currentClub.enabled) {
+            return interaction.update({
+              content: 'This club cannot be removed.',
+              components: []
+            });
+          }
+
+          const enabledCount = stateSel.clubs.filter((c) => c.enabled).length;
+          if (enabledCount <= 1) {
+            return interaction.update({
+              content: 'You must keep at least one club enabled.',
+              components: []
+            });
+          }
+
+          const clubBoard = stateSel.boardState[clubKey];
+          if (clubBoard && clubBoard.slots) {
+            const hasTaken = clubBoard.slots.some((slot) => !slot.open);
+            if (hasTaken) {
+              return interaction.update({
+                content:
+                  'This club still has taken spots. Free all spots first before removing it.',
+                components: []
+              });
+            }
+          }
+
+          currentClub.enabled = false;
+          resetClubSpots(stateSel.boardState, clubKey);
+          if (stateSel.clubVcLinks) {
+            stateSel.clubVcLinks[clubKey] = null;
+          }
+
+          if (stateSel.currentClubKey === clubKey) {
+            const firstEnabled = stateSel.clubs.find((c) => c.enabled);
+            if (firstEnabled) stateSel.currentClubKey = firstEnabled.key;
+          }
+
+          await refreshClubPanels(guildIdSel, stateSel.currentClubKey);
+
+          return interaction.update({
+            content: `Removed club **${currentClub.name}**. Panels may need to be recreated to reflect this change.`,
+            components: []
+          });
+        }
+
+        if (choice === 'refresh') {
+          await refreshClubPanels(guildIdSel, clubKey);
+          return interaction.update({
+            content: 'Panel refreshed.',
+            components: []
+          });
+        }
+
+        return;
+      }
+
+      // Set VC select
       if (id.startsWith('set_vc_select_')) {
         const clubKey = id.substring('set_vc_select_'.length);
         const selected = interaction.values[0];
 
-        const club = getClubByKey(clubs, clubKey);
+        const club = getClubByKey(stateSel.clubs, clubKey);
         if (!club) {
           return interaction.reply({
             content: 'Unknown club in voice channel link request.',
@@ -2103,18 +2255,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        if (!state.clubVcLinks) state.clubVcLinks = {};
+        if (!stateSel.clubVcLinks) stateSel.clubVcLinks = {};
 
         let responseText;
         if (selected === '__NONE__') {
-          state.clubVcLinks[clubKey] = null;
+          stateSel.clubVcLinks[clubKey] = null;
           responseText = `Cleared the linked voice channel for **${club.name}**.`;
         } else {
-          state.clubVcLinks[clubKey] = selected;
+          stateSel.clubVcLinks[clubKey] = selected;
           responseText = `Linked **${club.name}** to voice channel <#${selected}>.`;
         }
 
-        await refreshClubPanels(guildId, clubKey);
+        await refreshClubPanels(guildIdSel, clubKey);
 
         return interaction.update({
           content: responseText,
@@ -2122,18 +2274,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // First step of manager assignment: pick player (manager-only)
+      // Assign: pick player (manager-only)
       if (id.startsWith('assign_player_pick_')) {
         if (!isManager(interaction.member)) {
           return interaction.reply({
             content:
-              'Only captains, managers, owners, media, or admins can assign or move players.',
+              'Only captains, managers, owners, media, or admins can use the Player Tools menu.',
             ephemeral: true
           });
         }
 
         const clubKey = id.substring('assign_player_pick_'.length);
-        const club = getClubByKey(clubs, clubKey);
+        const club = getClubByKey(stateSel.clubs, clubKey);
         if (!club) {
           return interaction.reply({
             content: 'Unknown club in assignment request.',
@@ -2142,7 +2294,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
 
         const userId = interaction.values[0];
-        const clubBoard = state.boardState[clubKey];
+        const clubBoard = stateSel.boardState[clubKey];
         if (!clubBoard) {
           return interaction.reply({
             content: 'Club board not found.',
@@ -2150,7 +2302,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        // Build slot options with numbering if duplicate labels
         const labelCounts = {};
         clubBoard.slots.forEach((slot) => {
           labelCounts[slot.label] = (labelCounts[slot.label] || 0) + 1;
@@ -2187,22 +2338,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Second step of manager assignment: pick spot index (manager-only)
+      // Assign: pick slot (manager-only)
       if (id.startsWith('assign_player_pos_')) {
         if (!isManager(interaction.member)) {
           return interaction.reply({
             content:
-              'Only captains, managers, owners, media, or admins can assign or move players.',
+              'Only captains, managers, owners, media, or admins can use the Player Tools menu.',
             ephemeral: true
           });
         }
 
-        const parts = id.split('_'); // ['assign','player','pos',clubKey,userId]
+        const parts = id.split('_');
         const clubKey = parts[3];
         const userId = parts[4];
         const slotIndex = parseInt(interaction.values[0], 10);
 
-        const club = getClubByKey(clubs, clubKey);
+        const club = getClubByKey(stateSel.clubs, clubKey);
         if (!club) {
           return interaction.reply({
             content: 'Unknown club in assignment request.',
@@ -2210,7 +2361,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        const clubBoard = state.boardState[clubKey];
+        const clubBoard = stateSel.boardState[clubKey];
         if (!clubBoard || !clubBoard.slots[slotIndex]) {
           return interaction.reply({
             content: 'Unknown spot for this club.',
@@ -2218,20 +2369,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        // Clear any slots this user holds in this club
-        clubBoard.slots.forEach((s) => {
+        for (let i = 0; i < clubBoard.slots.length; i++) {
+          const s = clubBoard.slots[i];
           if (s.takenBy === userId) {
             s.open = true;
             s.takenBy = null;
+            await notifySlotWaiters(guildIdSel, clubKey, i);
           }
-        });
+        }
 
-        // Assign to chosen slot (override previous occupant)
         const slot = clubBoard.slots[slotIndex];
         slot.open = false;
         slot.takenBy = userId;
 
-        await refreshClubPanels(guildId, clubKey);
+        await refreshClubPanels(guildIdSel, clubKey);
 
         const playerLabel =
           userId === '__NOT_IN_VC__'
@@ -2244,12 +2395,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // vcspots: pick which club is playing in this VC
+      // vcspots: pick club for VC
       if (id.startsWith('vcspots_pickclub_')) {
         const voiceChannelId = id.substring('vcspots_pickclub_'.length);
         const clubKey = interaction.values[0];
 
-        const club = getClubByKey(clubs, clubKey);
+        const club = getClubByKey(stateSel.clubs, clubKey);
         if (!club || !club.enabled) {
           return interaction.reply({
             content: 'Unknown or disabled club selected.',
@@ -2264,8 +2415,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           console.error('⚠️ Failed to fetch voice channel for vcspots:', err);
         }
 
-        // Try to reuse an existing panel for this VC, otherwise create one
-        const existingPanel = state.vcPanels[voiceChannelId];
+        const existingPanel = stateSel.vcPanels[voiceChannelId];
         let panelMessage = null;
 
         try {
@@ -2275,8 +2425,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
             );
             panelMessage = await channel.messages.fetch(existingPanel.messageId);
             await panelMessage.edit({
-              embeds: [buildEmbedForClub(guildId, clubKey)],
-              components: buildAdminComponents(guildId, clubKey)
+              embeds: [buildEmbedForClub(guildIdSel, clubKey)],
+              components: buildAdminComponents(guildIdSel, clubKey)
             });
           }
         } catch (err) {
@@ -2289,20 +2439,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         if (!panelMessage) {
           panelMessage = await interaction.channel.send({
-            embeds: [buildEmbedForClub(guildId, clubKey)],
-            components: buildAdminComponents(guildId, clubKey)
+            embeds: [buildEmbedForClub(guildIdSel, clubKey)],
+            components: buildAdminComponents(guildIdSel, clubKey)
           });
         }
 
-        state.vcPanels[voiceChannelId] = {
+        stateSel.vcPanels[voiceChannelId] = {
           clubKey,
           textChannelId: panelMessage.channel.id,
           messageId: panelMessage.id
         };
 
-        // Auto-link the VC for this club
-        if (!state.clubVcLinks) state.clubVcLinks = {};
-        state.clubVcLinks[clubKey] = voiceChannelId;
+        if (!stateSel.clubVcLinks) stateSel.clubVcLinks = {};
+        stateSel.clubVcLinks[clubKey] = voiceChannelId;
 
         return interaction.update({
           content: `Linked **${club.name}** to voice channel **${
@@ -2312,18 +2461,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Manage players: pick which player to manage (manager-only)
+      // Manage: pick player (manager-only)
       if (id.startsWith('manage_player_pick_')) {
         if (!isManager(interaction.member)) {
           return interaction.reply({
             content:
-              'Only captains, managers, owners, media, or admins can remove or move players.',
+              'Only captains, managers, owners, media, or admins can use the Player Tools menu.',
             ephemeral: true
           });
         }
 
         const clubKey = id.substring('manage_player_pick_'.length);
-        const club = getClubByKey(clubs, clubKey);
+        const club = getClubByKey(stateSel.clubs, clubKey);
         if (!club) {
           return interaction.reply({
             content: 'Unknown club in manage request.',
@@ -2332,7 +2481,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
 
         const userId = interaction.values[0];
-        const clubBoard = state.boardState[clubKey];
+        const clubBoard = stateSel.boardState[clubKey];
         if (!clubBoard) {
           return interaction.reply({
             content: 'Club board not found.',
@@ -2340,7 +2489,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        // Build slot options with numbering if duplicate labels
         const labelCounts = {};
         clubBoard.slots.forEach((slot) => {
           labelCounts[slot.label] = (labelCounts[slot.label] || 0) + 1;
@@ -2384,22 +2532,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Manage players: choose new position or remove (manager-only)
+      // Manage: move/remove (manager-only)
       if (id.startsWith('manage_player_pos_')) {
         if (!isManager(interaction.member)) {
           return interaction.reply({
             content:
-              'Only captains, managers, owners, media, or admins can remove or move players.',
+              'Only captains, managers, owners, media, or admins can use the Player Tools menu.',
             ephemeral: true
           });
         }
 
-        const parts = id.split('_'); // ['manage','player','pos',clubKey,userId]
+        const parts = id.split('_');
         const clubKey = parts[3];
         const userId = parts[4];
         const choice = interaction.values[0];
 
-        const club = getClubByKey(clubs, clubKey);
+        const club = getClubByKey(stateSel.clubs, clubKey);
         if (!club) {
           return interaction.reply({
             content: 'Unknown club in manage request.',
@@ -2407,7 +2555,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        const clubBoard = state.boardState[clubKey];
+        const clubBoard = stateSel.boardState[clubKey];
         if (!clubBoard) {
           return interaction.reply({
             content: 'Club board not found.',
@@ -2415,13 +2563,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
           });
         }
 
-        // Clear all slots this user holds in this club
-        clubBoard.slots.forEach((s) => {
+        for (let i = 0; i < clubBoard.slots.length; i++) {
+          const s = clubBoard.slots[i];
           if (s.takenBy === userId) {
             s.open = true;
             s.takenBy = null;
+            await notifySlotWaiters(guildIdSel, clubKey, i);
           }
-        });
+        }
 
         if (choice !== '__REMOVE__') {
           const slotIndex = parseInt(choice, 10);
@@ -2436,7 +2585,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
           slot.takenBy = userId;
         }
 
-        await refreshClubPanels(guildId, clubKey);
+        await refreshClubPanels(guildIdSel, clubKey);
 
         if (choice === '__REMOVE__') {
           if (userId === '__NOT_IN_VC__') {
@@ -2465,12 +2614,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
       }
 
-      // Formation selection (everyone) – grouped selects
+      // Formation select groups
       if (id.startsWith('formation_select_')) {
-        const parts = id.split('_'); // ['formation','select',clubKey,groupId]
+        const parts = id.split('_');
         const clubKey = parts[2];
         const formationName = interaction.values[0];
-        return setClubFormation(interaction, guildId, clubKey, formationName);
+        return setClubFormation(interaction, guildIdSel, clubKey, formationName);
       }
     }
   } catch (err) {
@@ -2488,11 +2637,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-// When someone leaves voice, clear any slots they held in any club
+// Clear slots when someone leaves all voice channels
 client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
   try {
     if (!oldState.guild || !oldState.channelId) return;
-    // If they are still in *some* voice channel (moved), don’t clear yet
     if (newState.channelId) return;
 
     const guildId = oldState.guild.id;
@@ -2507,10 +2655,12 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
       if (!clubBoard || !clubBoard.slots) continue;
 
       let changed = false;
-      for (const slot of clubBoard.slots) {
+      for (let i = 0; i < clubBoard.slots.length; i++) {
+        const slot = clubBoard.slots[i];
         if (slot && slot.takenBy === userId) {
           slot.open = true;
           slot.takenBy = null;
+          await notifySlotWaiters(guildId, clubKey, i);
           changed = true;
         }
       }
